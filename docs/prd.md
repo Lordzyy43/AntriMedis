@@ -1,6 +1,6 @@
 # PRD.md
 
-# Product Requirement Document — AntriMedis
+# Product Requirement Document - AntriMedis
 
 **Sistem Antrean Real-Time Klinik & Estimasi Waktu Tunggu**
 
@@ -14,8 +14,8 @@
 | Jenis Produk      | Sistem antrean digital klinik                                 |
 | Platform Pasien   | Mobile App Flutter                                            |
 | Platform Admin    | Web Admin Panel                                               |
-| Backend           | Supabase: Auth, PostgreSQL, Realtime, Storage, Edge Functions |
-| Target Pengguna   | Pasien, Admin Klinik, Dokter/Petugas Poli, Owner Klinik       |
+| Backend           | Supabase: Auth, PostgreSQL, Realtime, RLS, RPC                |
+| Target Pengguna   | Pasien dan Admin Klinik untuk MVP                             |
 | Target Proyek     | UAS Mobile + Portfolio Full-Stack                             |
 | Tingkat Kesulitan | Hard                                                          |
 | Versi Dokumen     | v1.0                                                          |
@@ -27,12 +27,12 @@
 
 AntriMedis adalah aplikasi antrean klinik berbasis mobile dan web yang membantu pasien mengambil nomor antrean secara online, melihat posisi antrean secara real-time, mengetahui estimasi waktu tunggu, serta menerima notifikasi ketika antreannya hampir dipanggil.
 
-Sistem terdiri dari dua sisi utama:
+Sistem terdiri dari dua sisi utama untuk MVP:
 
 1. **Mobile App Flutter** untuk pasien.
-2. **Web Admin Panel** untuk admin klinik, dokter/petugas poli, dan owner.
+2. **Web Admin Panel** untuk admin klinik.
 
-Backend menggunakan Supabase agar sistem memiliki autentikasi, database PostgreSQL yang rapi, fitur realtime, storage, dan kemungkinan penggunaan Edge Functions untuk proses bisnis yang lebih aman.
+Backend menggunakan Supabase agar sistem memiliki autentikasi, database PostgreSQL yang rapi, fitur realtime, Row Level Security, dan RPC untuk proses bisnis penting seperti pembuatan nomor antrean dan pemanggilan antrean. Modul dokter, owner, multi-cabang lanjutan, Storage, dan Edge Functions disiapkan sebagai arah pengembangan setelah MVP.
 
 ---
 
@@ -179,8 +179,8 @@ Auth           : Supabase Auth
 Database       : PostgreSQL
 Realtime       : Supabase Realtime
 Security       : Row Level Security Policies
-Storage        : Supabase Storage
-Server Logic   : Supabase Edge Functions
+Business Logic : PostgreSQL Functions / RPC
+Optional Later : Supabase Storage, Edge Functions
 ```
 
 ---
@@ -189,22 +189,53 @@ Server Logic   : Supabase Edge Functions
 
 ### 7.1 MVP UAS
 
-Fitur wajib untuk versi UAS:
+Fitur wajib untuk versi UAS difokuskan pada alur pasien dan admin antrean. Fitur dokter, owner, dan super admin tetap masuk rancangan sistem, tetapi tidak menjadi target implementasi utama.
+
+Mobile App Pasien:
 
 1. Register dan login pasien.
-2. Login admin.
-3. Pasien melihat daftar klinik/cabang.
-4. Pasien memilih poli dan dokter.
-5. Pasien melihat jadwal praktik.
-6. Pasien mengambil nomor antrean.
-7. Pasien melihat status antrean aktif.
-8. Admin melihat daftar antrean hari ini.
-9. Admin memanggil antrean berikutnya.
-10. Admin mengubah status antrean.
-11. Data antrean berubah real-time.
-12. Estimasi waktu tunggu tampil di aplikasi pasien.
-13. Notifikasi lokal saat antrean tersisa 3 nomor.
-14. Riwayat antrean pasien.
+2. Melihat daftar klinik/cabang.
+3. Memilih poli dan dokter.
+4. Melihat jadwal praktik.
+5. Mengambil nomor antrean.
+6. Melihat status antrean aktif.
+7. Melihat estimasi waktu tunggu.
+8. Mendapat notifikasi lokal saat antrean tersisa 3 nomor.
+9. Melihat riwayat antrean pasien.
+
+Web Admin Panel:
+
+1. Login admin.
+2. Melihat dashboard antrean hari ini.
+3. Melihat daftar antrean berdasarkan jadwal/poli/dokter.
+4. Memanggil antrean berikutnya.
+5. Mengubah status antrean menjadi `called`, `serving`, `completed`, `skipped`, atau `cancelled`.
+6. Mengelola data dasar dokter, poli, dan jadwal secara minimal.
+
+Backend Supabase:
+
+1. Supabase Auth untuk pasien dan admin.
+2. PostgreSQL schema untuk data klinik, dokter, jadwal, sesi antrean, dan tiket antrean.
+3. RLS untuk membatasi akses pasien dan admin.
+4. RPC `create_queue_ticket` untuk membuat nomor antrean tanpa race condition.
+5. RPC `call_next_queue` dan `update_queue_status` untuk aksi admin.
+6. Realtime subscription untuk update status antrean di mobile dan web.
+
+### 7.1.1 Batas Implementasi MVP
+
+MVP hanya wajib membuktikan siklus antrean end-to-end:
+
+```txt
+Pasien login
+-> pilih jadwal dokter
+-> ambil nomor antrean
+-> admin memanggil antrean dari web
+-> status berubah real-time di mobile
+-> estimasi waktu tunggu ikut berubah
+-> local notification muncul ketika antrean dekat
+```
+
+Implementasi MVP boleh memakai satu klinik dan satu cabang dummy. Struktur database tetap disiapkan untuk multi-cabang agar proyek mudah dikembangkan, tetapi UI multi-cabang lanjutan tidak wajib selesai pada tahap UAS.
 
 ### 7.2 Pengembangan Lanjutan
 
@@ -236,18 +267,29 @@ Fitur yang tidak dikerjakan pada tahap awal:
 5. Chat dokter.
 6. Integrasi BPJS/asuransi.
 7. AI diagnosis.
+8. Dashboard owner penuh.
+9. Panel dokter terpisah.
+10. Super admin multi-klinik.
+11. Supabase Storage untuk upload avatar/logo.
+12. Supabase Edge Functions untuk push notification produksi.
 
 ---
 
 ## 8. Role dan Hak Akses
 
-| Role        | Platform | Hak Akses                                          |
-| ----------- | -------- | -------------------------------------------------- |
-| patient     | Mobile   | Ambil antrean, lihat status, lihat riwayat         |
-| admin       | Web      | Kelola antrean, dokter, poli, jadwal               |
-| doctor      | Web      | Lihat antrean poli/dokter, mulai/selesai pelayanan |
-| owner       | Web      | Lihat laporan dan dashboard klinik                 |
-| super_admin | Web      | Kelola semua klinik/cabang                         |
+| Role        | Platform | Prioritas | Hak Akses                                          |
+| ----------- | -------- | --------- | -------------------------------------------------- |
+| patient     | Mobile   | MVP       | Ambil antrean, lihat status, lihat riwayat         |
+| admin       | Web      | MVP       | Kelola antrean, dokter, poli, jadwal               |
+| doctor      | Web      | Later     | Lihat antrean poli/dokter, mulai/selesai pelayanan |
+| owner       | Web      | Later     | Lihat laporan dan dashboard klinik                 |
+| super_admin | Web      | Later     | Kelola semua klinik/cabang                         |
+
+Catatan implementasi MVP:
+
+- Role `doctor`, `owner`, dan `super_admin` tetap boleh ada di schema dan seed data.
+- UI dan flow utama yang wajib selesai hanya `patient` dan `admin`.
+- Aksi dokter pada MVP dapat diwakili oleh admin melalui tombol `serving` dan `completed`.
 
 ---
 
@@ -257,29 +299,29 @@ Fitur yang tidak dikerjakan pada tahap awal:
 
 ```txt
 Pasien membuka aplikasi
-↓
+->
 Login/Register
-↓
+->
 Dashboard pasien
-↓
+->
 Pilih klinik/cabang
-↓
+->
 Pilih poli
-↓
+->
 Pilih dokter/jadwal praktik
-↓
+->
 Klik Ambil Nomor Antrean
-↓
+->
 Sistem validasi:
 - user sudah login
 - jadwal aktif
 - kuota masih tersedia
 - pasien belum punya antrean aktif pada jadwal tersebut
-↓
+->
 Sistem membuat nomor antrean
-↓
+->
 Pasien diarahkan ke halaman tracking antrean
-↓
+->
 Pasien melihat posisi antrean dan estimasi waktu tunggu
 ```
 
@@ -287,23 +329,23 @@ Pasien melihat posisi antrean dan estimasi waktu tunggu
 
 ```txt
 Admin login web panel
-↓
+->
 Dashboard admin
-↓
+->
 Pilih cabang/poli/dokter/jadwal
-↓
+->
 Lihat daftar antrean waiting
-↓
+->
 Klik Panggil Berikutnya
-↓
+->
 Sistem mengambil antrean waiting paling awal
-↓
+->
 Status antrean berubah menjadi called
-↓
+->
 Nomor berjalan berubah real-time
-↓
+->
 Aplikasi pasien menerima update
-↓
+->
 Pasien mendapat notifikasi jika antreannya dekat
 ```
 
@@ -311,19 +353,19 @@ Pasien mendapat notifikasi jika antreannya dekat
 
 ```txt
 Admin/dokter melihat antrean called
-↓
+->
 Klik Mulai Pelayanan
-↓
+->
 Status berubah menjadi serving
-↓
+->
 Dokter melayani pasien
-↓
+->
 Klik Selesai
-↓
+->
 Status berubah menjadi completed
-↓
+->
 Sistem menyimpan waktu mulai dan selesai pelayanan
-↓
+->
 Data dapat dipakai untuk laporan dan estimasi lanjutan
 ```
 
@@ -331,13 +373,13 @@ Data dapat dipakai untuk laporan dan estimasi lanjutan
 
 ```txt
 Pasien membuka halaman antrean aktif
-↓
+->
 Klik Batalkan Antrean
-↓
+->
 Sistem meminta konfirmasi
-↓
+->
 Status berubah menjadi cancelled
-↓
+->
 Admin melihat antrean tersebut batal
 ```
 
@@ -441,7 +483,7 @@ Output sukses:
 ```txt
 Nomor antrean: A001
 Status: waiting
-Estimasi waktu tunggu: ± 24 menit
+Estimasi waktu tunggu: +/- 24 menit
 ```
 
 ### 10.7 Halaman Tracking Antrean
@@ -464,7 +506,7 @@ Contoh tampilan:
 Nomor Anda      : A012
 Sedang Dipanggil: A009
 Sisa Antrean    : 3 pasien
-Estimasi Tunggu : ± 18 menit
+Estimasi Tunggu : +/- 18 menit
 Status          : Menunggu
 ```
 
@@ -730,7 +772,7 @@ auth.users 1---1 profiles
 auth.users M---M roles melalui user_roles
 clinics 1---M clinic_branches
 clinic_branches 1---M polyclinics
-profiles 1---M doctors
+auth.users 1---M doctors sebagai akun dokter opsional
 polyclinics M---M doctors melalui doctor_polyclinics
 doctors 1---M doctor_schedules
 polyclinics 1---M doctor_schedules
@@ -932,12 +974,13 @@ values
 
 ### 14.10 Doctors
 
-Dokter tetap menggunakan `profiles` sebagai data user umum. Tabel `doctors` menyimpan detail profesi dokter.
+Untuk MVP, dokter tidak wajib memiliki akun login. Tabel `doctors` menyimpan nama dokter secara langsung, sementara `user_id` bersifat opsional jika pada pengembangan lanjutan dokter perlu login ke web panel.
 
 ```sql
 create table public.doctors (
   id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete set null,
+  full_name text not null,
   license_number text,
   specialization text,
   bio text,
@@ -946,10 +989,11 @@ create table public.doctors (
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique(profile_id)
+  unique(user_id)
 );
 
-create index doctors_profile_id_idx on public.doctors(profile_id);
+create index doctors_user_id_idx on public.doctors(user_id);
+create index doctors_full_name_idx on public.doctors using gin (to_tsvector('simple', full_name));
 ```
 
 ### 14.11 Doctor Polyclinics
@@ -1405,7 +1449,7 @@ select
   pc.name as polyclinic_name,
   pc.queue_prefix,
   d.id as doctor_id,
-  dp.full_name as doctor_name,
+  d.full_name as doctor_name,
   d.specialization
 from public.queue_tickets qt
 join public.profiles p on p.id = qt.patient_id
@@ -1413,8 +1457,7 @@ join public.queue_sessions qs on qs.id = qt.queue_session_id
 join public.doctor_schedules ds on ds.id = qs.schedule_id
 join public.clinic_branches cb on cb.id = ds.branch_id
 join public.polyclinics pc on pc.id = ds.polyclinic_id
-join public.doctors d on d.id = ds.doctor_id
-join public.profiles dp on dp.id = d.profile_id;
+join public.doctors d on d.id = ds.doctor_id;
 ```
 
 ### 16.2 View Schedule Availability
@@ -1429,7 +1472,7 @@ select
   pc.name as polyclinic_name,
   pc.queue_prefix,
   ds.doctor_id,
-  dp.full_name as doctor_name,
+  d.full_name as doctor_name,
   d.specialization,
   ds.schedule_date,
   ds.start_time,
@@ -1446,10 +1489,9 @@ from public.doctor_schedules ds
 join public.clinic_branches cb on cb.id = ds.branch_id
 join public.polyclinics pc on pc.id = ds.polyclinic_id
 join public.doctors d on d.id = ds.doctor_id
-join public.profiles dp on dp.id = d.profile_id
 left join public.queue_sessions qs on qs.schedule_id = ds.id
 left join public.queue_tickets qt on qt.queue_session_id = qs.id
-group by ds.id, cb.name, pc.name, pc.queue_prefix, dp.full_name, d.specialization, qs.id, qs.current_number, qs.last_number;
+group by ds.id, cb.name, pc.name, pc.queue_prefix, d.full_name, d.specialization, qs.id, qs.current_number, qs.last_number;
 ```
 
 ---
@@ -1715,68 +1757,68 @@ const { data, error } = await supabase.rpc("update_queue_status", {
 
 ```txt
 lib/
-├── main.dart
-├── app.dart
-├── core/
-│   ├── config/
-│   │   ├── app_config.dart
-│   │   └── supabase_config.dart
-│   ├── constants/
-│   │   ├── app_colors.dart
-│   │   ├── app_strings.dart
-│   │   └── app_routes.dart
-│   ├── errors/
-│   │   └── failure.dart
-│   ├── services/
-│   │   ├── supabase_service.dart
-│   │   ├── notification_service.dart
-│   │   └── realtime_service.dart
-│   ├── theme/
-│   │   └── app_theme.dart
-│   └── utils/
-│       ├── date_formatter.dart
-│       └── queue_estimator.dart
-├── data/
-│   ├── models/
-│   │   ├── profile_model.dart
-│   │   ├── clinic_model.dart
-│   │   ├── branch_model.dart
-│   │   ├── polyclinic_model.dart
-│   │   ├── doctor_model.dart
-│   │   ├── schedule_model.dart
-│   │   ├── queue_session_model.dart
-│   │   └── queue_ticket_model.dart
-│   └── repositories/
-│       ├── auth_repository.dart
-│       ├── clinic_repository.dart
-│       ├── schedule_repository.dart
-│       └── queue_repository.dart
-├── providers/
-│   ├── auth_provider.dart
-│   ├── clinic_provider.dart
-│   ├── schedule_provider.dart
-│   └── queue_provider.dart
-├── presentation/
-│   ├── auth/
-│   │   ├── login_page.dart
-│   │   └── register_page.dart
-│   ├── patient/
-│   │   ├── patient_home_page.dart
-│   │   ├── branch_list_page.dart
-│   │   ├── polyclinic_list_page.dart
-│   │   ├── schedule_list_page.dart
-│   │   ├── queue_confirmation_page.dart
-│   │   ├── queue_tracking_page.dart
-│   │   └── queue_history_page.dart
-│   └── widgets/
-│       ├── active_queue_card.dart
-│       ├── branch_card.dart
-│       ├── polyclinic_card.dart
-│       ├── schedule_card.dart
-│       ├── queue_status_badge.dart
-│       └── primary_button.dart
-└── routes/
-    └── app_router.dart
++-- main.dart
++-- app.dart
++-- core/
+|   +-- config/
+|   |   +-- app_config.dart
+|   |   `-- supabase_config.dart
+|   +-- constants/
+|   |   +-- app_colors.dart
+|   |   +-- app_strings.dart
+|   |   `-- app_routes.dart
+|   +-- errors/
+|   |   `-- failure.dart
+|   +-- services/
+|   |   +-- supabase_service.dart
+|   |   +-- notification_service.dart
+|   |   `-- realtime_service.dart
+|   +-- theme/
+|   |   `-- app_theme.dart
+|   `-- utils/
+|       +-- date_formatter.dart
+|       `-- queue_estimator.dart
++-- data/
+|   +-- models/
+|   |   +-- profile_model.dart
+|   |   +-- clinic_model.dart
+|   |   +-- branch_model.dart
+|   |   +-- polyclinic_model.dart
+|   |   +-- doctor_model.dart
+|   |   +-- schedule_model.dart
+|   |   +-- queue_session_model.dart
+|   |   `-- queue_ticket_model.dart
+|   `-- repositories/
+|       +-- auth_repository.dart
+|       +-- clinic_repository.dart
+|       +-- schedule_repository.dart
+|       `-- queue_repository.dart
++-- providers/
+|   +-- auth_provider.dart
+|   +-- clinic_provider.dart
+|   +-- schedule_provider.dart
+|   `-- queue_provider.dart
++-- presentation/
+|   +-- auth/
+|   |   +-- login_page.dart
+|   |   `-- register_page.dart
+|   +-- patient/
+|   |   +-- patient_home_page.dart
+|   |   +-- branch_list_page.dart
+|   |   +-- polyclinic_list_page.dart
+|   |   +-- schedule_list_page.dart
+|   |   +-- queue_confirmation_page.dart
+|   |   +-- queue_tracking_page.dart
+|   |   `-- queue_history_page.dart
+|   `-- widgets/
+|       +-- active_queue_card.dart
+|       +-- branch_card.dart
+|       +-- polyclinic_card.dart
+|       +-- schedule_card.dart
+|       +-- queue_status_badge.dart
+|       `-- primary_button.dart
+`-- routes/
+    `-- app_router.dart
 ```
 
 ---
@@ -1785,57 +1827,57 @@ lib/
 
 ```txt
 src/
-├── app/
-│   ├── providers.tsx
-│   └── router.tsx
-├── config/
-│   └── env.ts
-├── lib/
-│   ├── supabase.ts
-│   ├── utils.ts
-│   └── date.ts
-├── types/
-│   ├── auth.ts
-│   ├── clinic.ts
-│   ├── schedule.ts
-│   └── queue.ts
-├── features/
-│   ├── auth/
-│   │   ├── pages/LoginPage.tsx
-│   │   ├── services/authService.ts
-│   │   └── hooks/useAuth.ts
-│   ├── dashboard/
-│   │   ├── pages/AdminDashboardPage.tsx
-│   │   └── components/StatsCard.tsx
-│   ├── queues/
-│   │   ├── pages/QueueManagementPage.tsx
-│   │   ├── components/QueueTable.tsx
-│   │   ├── components/QueueActionButtons.tsx
-│   │   ├── services/queueService.ts
-│   │   └── hooks/useQueues.ts
-│   ├── clinics/
-│   │   ├── pages/BranchManagementPage.tsx
-│   │   └── services/clinicService.ts
-│   ├── polyclinics/
-│   │   ├── pages/PolyclinicManagementPage.tsx
-│   │   └── services/polyclinicService.ts
-│   ├── doctors/
-│   │   ├── pages/DoctorManagementPage.tsx
-│   │   └── services/doctorService.ts
-│   └── schedules/
-│       ├── pages/ScheduleManagementPage.tsx
-│       └── services/scheduleService.ts
-├── components/
-│   ├── layout/
-│   │   ├── AdminLayout.tsx
-│   │   ├── Sidebar.tsx
-│   │   └── Header.tsx
-│   └── ui/
-│       ├── Button.tsx
-│       ├── Input.tsx
-│       ├── Modal.tsx
-│       └── Badge.tsx
-└── main.tsx
++-- app/
+|   +-- providers.tsx
+|   `-- router.tsx
++-- config/
+|   `-- env.ts
++-- lib/
+|   +-- supabase.ts
+|   +-- utils.ts
+|   `-- date.ts
++-- types/
+|   +-- auth.ts
+|   +-- clinic.ts
+|   +-- schedule.ts
+|   `-- queue.ts
++-- features/
+|   +-- auth/
+|   |   +-- pages/LoginPage.tsx
+|   |   +-- services/authService.ts
+|   |   `-- hooks/useAuth.ts
+|   +-- dashboard/
+|   |   +-- pages/AdminDashboardPage.tsx
+|   |   `-- components/StatsCard.tsx
+|   +-- queues/
+|   |   +-- pages/QueueManagementPage.tsx
+|   |   +-- components/QueueTable.tsx
+|   |   +-- components/QueueActionButtons.tsx
+|   |   +-- services/queueService.ts
+|   |   `-- hooks/useQueues.ts
+|   +-- clinics/
+|   |   +-- pages/BranchManagementPage.tsx
+|   |   `-- services/clinicService.ts
+|   +-- polyclinics/
+|   |   +-- pages/PolyclinicManagementPage.tsx
+|   |   `-- services/polyclinicService.ts
+|   +-- doctors/
+|   |   +-- pages/DoctorManagementPage.tsx
+|   |   `-- services/doctorService.ts
+|   `-- schedules/
+|       +-- pages/ScheduleManagementPage.tsx
+|       `-- services/scheduleService.ts
++-- components/
+|   +-- layout/
+|   |   +-- AdminLayout.tsx
+|   |   +-- Sidebar.tsx
+|   |   `-- Header.tsx
+|   `-- ui/
+|       +-- Button.tsx
+|       +-- Input.tsx
+|       +-- Modal.tsx
+|       `-- Badge.tsx
+`-- main.tsx
 ```
 
 ---
@@ -2001,7 +2043,7 @@ Then aplikasi menampilkan local notification
 
 ## 25. Prioritas Pengerjaan
 
-### Phase 1 — Database & Supabase Setup
+### Phase 1 - Database & Supabase Setup
 
 1. Buat project Supabase.
 2. Buat schema database.
@@ -2009,8 +2051,9 @@ Then aplikasi menampilkan local notification
 4. Aktifkan RLS.
 5. Setup initial seed data.
 6. Test RPC di Supabase SQL Editor.
+7. Pastikan `create_queue_ticket`, `call_next_queue`, dan `update_queue_status` berjalan sebelum UI dibuat.
 
-### Phase 2 — Mobile Auth & Dashboard
+### Phase 2 - Mobile Auth & Dashboard
 
 1. Setup Flutter project.
 2. Install Supabase Flutter.
@@ -2018,15 +2061,16 @@ Then aplikasi menampilkan local notification
 4. Buat patient dashboard.
 5. Tampilkan list cabang dan poli.
 
-### Phase 3 — Queue Core
+### Phase 3 - Queue Core
 
 1. Tampilkan jadwal dokter.
 2. Buat fitur ambil antrean.
 3. Buat halaman tracking antrean.
 4. Setup realtime listener.
 5. Hitung estimasi waktu tunggu.
+6. Pastikan perubahan dari web admin langsung terlihat di mobile.
 
-### Phase 4 — Web Admin
+### Phase 4 - Web Admin
 
 1. Setup React + Vite + TypeScript.
 2. Setup Supabase client.
@@ -2035,14 +2079,16 @@ Then aplikasi menampilkan local notification
 5. Queue management page.
 6. Call next queue.
 7. Update queue status.
+8. Batasi web admin MVP pada queue management, jadwal, poli, dan dokter minimal.
 
-### Phase 5 — Notification & Polish
+### Phase 5 - Notification & Polish
 
 1. Setup local notification Flutter.
 2. Trigger notifikasi saat sisa antrean <= 3.
 3. Polish UI mobile.
 4. Polish UI web admin.
 5. Testing end-to-end.
+6. Siapkan skenario demo pasien dan admin.
 
 ---
 
@@ -2116,10 +2162,13 @@ MVP dianggap selesai jika:
 5. Admin bisa login web.
 6. Admin bisa melihat daftar antrean.
 7. Admin bisa memanggil antrean berikutnya.
-8. Status antrean berubah real-time di mobile.
-9. Estimasi waktu tunggu tampil.
-10. Local notification berjalan minimal untuk antrean dekat.
-11. Database sudah normal dan tidak hardcode.
+8. Admin bisa mengubah status antrean menjadi serving, completed, skipped, atau cancelled.
+9. Status antrean berubah real-time di mobile.
+10. Estimasi waktu tunggu tampil dan ikut berubah saat antrean berjalan.
+11. Local notification berjalan minimal untuk antrean dekat.
+12. Database sudah normal dan tidak hardcode.
+13. Aplikasi dapat didemokan end-to-end memakai satu akun pasien dan satu akun admin.
+14. Scope demo tidak bergantung pada fitur owner, super admin, FCM, atau Edge Functions.
 
 ---
 
@@ -2172,4 +2221,4 @@ Smart estimation berbasis historis
 
 AntriMedis adalah proyek yang kuat untuk UAS karena memiliki masalah nyata, fitur real-time, backend terstruktur, dan pembagian platform yang jelas antara mobile app pasien dan web admin. Dengan Supabase sebagai backend, proyek ini dapat dibangun lebih cepat tetapi tetap memiliki pondasi yang rapi dan scalable.
 
-Fokus pengerjaan sebaiknya dimulai dari database Supabase, karena struktur data antrean menentukan alur mobile dan web admin. Setelah schema stabil, pengembangan dapat dilanjutkan ke Flutter untuk pasien, lalu React web untuk admin.
+Fokus pengerjaan dimulai dari database Supabase dan RPC antrean, karena struktur data menentukan alur mobile dan web admin. Setelah schema stabil, pengembangan dilanjutkan ke Flutter untuk pasien, lalu React web untuk admin. Untuk MVP UAS, keberhasilan utama bukan banyaknya modul, tetapi kemampuan sistem menunjukkan alur antrean real-time end-to-end dari pasien mengambil nomor hingga admin memanggil antrean.

@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "scripts": {
+    "smoke:supabase": "node scripts/supabase-smoke-test.mjs",
+    "smoke:supabase:bootstrap": "node scripts/supabase-smoke-test.mjs --bootstrap"
+  }
+}
