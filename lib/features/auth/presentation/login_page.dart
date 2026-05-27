@@ -20,13 +20,17 @@ class _LoginPageState extends State<LoginPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isRegister = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -44,6 +48,10 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: AppSpacing.xxl),
             if (auth.error != null) ...[
               AppErrorBanner(message: auth.error!),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+            if (auth.notice != null) ...[
+              _AuthNotice(message: auth.notice!),
               const SizedBox(height: AppSpacing.lg),
             ],
             AppCard(
@@ -84,44 +92,125 @@ class _LoginPageState extends State<LoginPage> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.email],
                       decoration: const InputDecoration(
                         labelText: 'Email',
                         prefixIcon: Icon(Icons.mail_outline),
                       ),
-                      validator: (value) =>
-                          value == null || !value.contains('@')
-                          ? 'Email belum valid'
-                          : null,
+                      validator: _validateEmail,
                     ),
                     const SizedBox(height: AppSpacing.md),
                     TextFormField(
                       controller: _passwordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: Icon(Icons.lock_outline),
-                      ),
-                      validator: (value) => value == null || value.length < 6
-                          ? 'Password minimal 6 karakter'
-                          : null,
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    ElevatedButton.icon(
-                      onPressed: auth.isLoading ? null : _submit,
-                      icon: auth.isLoading
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                      obscureText: _obscurePassword,
+                      textInputAction: _isRegister
+                          ? TextInputAction.next
+                          : TextInputAction.done,
+                      autofillHints: [
+                        _isRegister
+                            ? AutofillHints.newPassword
+                            : AutofillHints.password,
+                      ],
+                      decoration:
+                          const InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: Icon(Icons.lock_outline),
+                          ).copyWith(
+                            suffixIcon: IconButton(
+                              tooltip: _obscurePassword
+                                  ? 'Tampilkan password'
+                                  : 'Sembunyikan password',
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                               ),
-                            )
-                          : Icon(
-                              _isRegister
-                                  ? Icons.person_add_alt_1
-                                  : Icons.login,
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
                             ),
-                      label: Text(_isRegister ? 'Daftar' : 'Masuk'),
+                          ),
+                      validator: _validatePassword,
+                      onFieldSubmitted: (_) {
+                        if (!_isRegister) _submit();
+                      },
+                    ),
+                    if (_isRegister) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirmPassword,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.newPassword],
+                        decoration:
+                            const InputDecoration(
+                              labelText: 'Konfirmasi password',
+                              prefixIcon: Icon(Icons.lock_reset_outlined),
+                            ).copyWith(
+                              suffixIcon: IconButton(
+                                tooltip: _obscureConfirmPassword
+                                    ? 'Tampilkan password'
+                                    : 'Sembunyikan password',
+                                icon: Icon(
+                                  _obscureConfirmPassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureConfirmPassword =
+                                        !_obscureConfirmPassword;
+                                  });
+                                },
+                              ),
+                            ),
+                        validator: _validateConfirmPassword,
+                        onFieldSubmitted: (_) => _submit(),
+                      ),
+                    ],
+                    if (!_isRegister) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: auth.isLoading ? null : _forgotPassword,
+                          child: const Text('Lupa password?'),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.xl),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: auth.isLoading ? null : _submit,
+                        icon: auth.isLoading
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Icon(
+                                _isRegister
+                                    ? Icons.person_add_alt_1
+                                    : Icons.login,
+                              ),
+                        label: Text(_isRegister ? 'Daftar' : 'Masuk'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    const _AuthDivider(),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: auth.isLoading ? null : _signInWithGoogle,
+                        icon: const Icon(Icons.g_mobiledata, size: 28),
+                        label: const Text('Lanjutkan dengan Google'),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     SizedBox(
@@ -129,7 +218,10 @@ class _LoginPageState extends State<LoginPage> {
                       child: TextButton(
                         onPressed: auth.isLoading
                             ? null
-                            : () => setState(() => _isRegister = !_isRegister),
+                            : () {
+                                auth.clearMessages();
+                                setState(() => _isRegister = !_isRegister);
+                              },
                         child: Text(
                           _isRegister
                               ? 'Sudah punya akun? Masuk'
@@ -159,6 +251,105 @@ class _LoginPageState extends State<LoginPage> {
     } else {
       await auth.signIn(_emailController.text.trim(), _passwordController.text);
     }
+  }
+
+  Future<void> _forgotPassword() async {
+    final emailError = _validateEmail(_emailController.text);
+    if (emailError != null) {
+      _showSnack(emailError);
+      return;
+    }
+    await context.read<AuthProvider>().sendPasswordReset(
+      _emailController.text.trim(),
+    );
+  }
+
+  Future<void> _signInWithGoogle() async {
+    await context.read<AuthProvider>().signInWithGoogle();
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailPattern.hasMatch(email)) return 'Email belum valid';
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    final password = value ?? '';
+    if (password.length < 8) return 'Password minimal 8 karakter';
+    if (!RegExp(r'[A-Za-z]').hasMatch(password) ||
+        !RegExp(r'\d').hasMatch(password)) {
+      return 'Gunakan kombinasi huruf dan angka';
+    }
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? value) {
+    if (value != _passwordController.text) {
+      return 'Konfirmasi password belum sama';
+    }
+    return null;
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _AuthNotice extends StatelessWidget {
+  const _AuthNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      backgroundColor: AppColors.successSoft,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.check_circle_outline, color: AppColors.success),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuthDivider extends StatelessWidget {
+  const _AuthDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        Expanded(child: Divider()),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Text(
+            'atau',
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Expanded(child: Divider()),
+      ],
+    );
   }
 }
 

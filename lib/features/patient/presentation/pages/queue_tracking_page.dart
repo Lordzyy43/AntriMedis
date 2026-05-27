@@ -106,10 +106,53 @@ class QueueTrackingPage extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (ticket.canCancel) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: queue.isLoading
+                            ? null
+                            : () => _confirmCancel(context),
+                        icon: const Icon(Icons.cancel_outlined),
+                        label: const Text('Batalkan Antrean'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
     );
+  }
+
+  Future<void> _confirmCancel(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Batalkan antrean?'),
+          content: const Text(
+            'Nomor antrean yang dibatalkan tidak bisa digunakan kembali.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Tidak'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Batalkan'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (ok != true || !context.mounted) return;
+    final cancelled = await context.read<QueueProvider>().cancelActiveTicket();
+    if (cancelled && context.mounted) {
+      Navigator.of(context).pop();
+    }
   }
 }
 

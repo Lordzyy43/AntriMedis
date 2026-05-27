@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../core/config/supabase_config.dart';
 
 class AuthRepository {
   const AuthRepository(this._client);
@@ -22,6 +25,28 @@ class AuthRepository {
       password: password,
       data: {'full_name': fullName},
     );
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    await _client.auth.resetPasswordForEmail(
+      email,
+      redirectTo: kIsWeb ? Uri.base.origin : SupabaseConfig.oauthRedirectUrl,
+    );
+  }
+
+  Future<void> updatePassword(String password) async {
+    await _client.auth.updateUser(UserAttributes(password: password));
+  }
+
+  Future<void> signInWithGoogle() async {
+    final launched = await _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? Uri.base.origin : SupabaseConfig.oauthRedirectUrl,
+      queryParams: const {'prompt': 'select_account'},
+    );
+    if (!launched) {
+      throw const AuthException('Gagal membuka halaman login Google.');
+    }
   }
 
   Future<void> signOut() => _client.auth.signOut();

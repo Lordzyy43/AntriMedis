@@ -335,15 +335,25 @@ as $$
 declare
   v_patient_role_id bigint;
 begin
-  insert into public.profiles (id, full_name, phone_number)
+  insert into public.profiles (id, full_name, phone_number, avatar_url)
   values (
     new.id,
-    coalesce(nullif(new.raw_user_meta_data ->> 'full_name', ''), split_part(new.email, '@', 1), 'Pasien AntriMedis'),
-    nullif(new.raw_user_meta_data ->> 'phone_number', '')
+    coalesce(
+      nullif(new.raw_user_meta_data ->> 'full_name', ''),
+      nullif(new.raw_user_meta_data ->> 'name', ''),
+      split_part(new.email, '@', 1),
+      'Pasien AntriMedis'
+    ),
+    nullif(new.raw_user_meta_data ->> 'phone_number', ''),
+    coalesce(
+      nullif(new.raw_user_meta_data ->> 'avatar_url', ''),
+      nullif(new.raw_user_meta_data ->> 'picture', '')
+    )
   )
   on conflict (id) do update
   set full_name = excluded.full_name,
-      phone_number = excluded.phone_number;
+      phone_number = excluded.phone_number,
+      avatar_url = coalesce(excluded.avatar_url, public.profiles.avatar_url);
 
   select id into v_patient_role_id
   from public.roles
@@ -362,6 +372,53 @@ $$;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
+
+create or replace function public.upsert_my_profile(
+  p_full_name text,
+  p_phone_number text,
+  p_gender public.gender_type,
+  p_birth_date date default null,
+  p_avatar_url text default null
+)
+returns public.profiles
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_profile public.profiles%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Unauthorized';
+  end if;
+
+  insert into public.profiles (
+    id,
+    full_name,
+    phone_number,
+    gender,
+    birth_date,
+    avatar_url
+  )
+  values (
+    auth.uid(),
+    p_full_name,
+    p_phone_number,
+    p_gender,
+    p_birth_date,
+    nullif(p_avatar_url, '')
+  )
+  on conflict (id) do update
+  set full_name = excluded.full_name,
+      phone_number = excluded.phone_number,
+      gender = excluded.gender,
+      birth_date = excluded.birth_date,
+      avatar_url = coalesce(excluded.avatar_url, public.profiles.avatar_url)
+  returning * into v_profile;
+
+  return v_profile;
+end;
+$$;
 
 create or replace function public.assign_role_by_email(
   p_email text,
@@ -776,6 +833,10 @@ create policy "Users can read own profile"
 on public.profiles for select to authenticated
 using (id = auth.uid());
 
+create policy "Users can create own profile"
+on public.profiles for insert to authenticated
+with check (id = auth.uid());
+
 create policy "Users can update own profile"
 on public.profiles for update to authenticated
 using (id = auth.uid())
@@ -904,6 +965,7 @@ revoke all on function public.refresh_queue_estimates(uuid) from public, anon, a
 grant execute on function public.has_role(text) to authenticated;
 grant execute on function public.is_staff() to authenticated;
 grant execute on function public.get_my_roles() to authenticated;
+grant execute on function public.upsert_my_profile(text, text, public.gender_type, date, text) to authenticated;
 grant execute on function public.create_queue_ticket(uuid) to authenticated;
 grant execute on function public.call_next_queue(uuid) to authenticated;
 grant execute on function public.update_queue_status(uuid, public.queue_status, text) to authenticated;
