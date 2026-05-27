@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/queue_ticket_detail.dart';
@@ -9,10 +10,12 @@ class QueueRepository {
   final SupabaseClient _client;
 
   Future<List<ScheduleAvailability>> fetchSchedules() async {
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final data = await _client
         .from('v_schedule_availability')
         .select()
         .eq('status', 'open')
+        .eq('schedule_date', today)
         .gt('remaining_quota', 0)
         .order('start_time', ascending: true);
 
@@ -38,6 +41,22 @@ class QueueRepository {
     return QueueTicketDetail.fromJson(data);
   }
 
+  Future<List<QueueTicketDetail>> fetchMyTickets({int limit = 30}) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+
+    final data = await _client
+        .from('v_queue_ticket_details')
+        .select()
+        .eq('patient_id', userId)
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    return data
+        .map<QueueTicketDetail>((row) => QueueTicketDetail.fromJson(row))
+        .toList();
+  }
+
   Future<QueueTicketDetail> createTicket(String queueSessionId) async {
     final ticket = await _client.rpc<Map<String, dynamic>>(
       'create_queue_ticket',
@@ -54,6 +73,18 @@ class QueueRepository {
         .single();
 
     return QueueTicketDetail.fromJson(data);
+  }
+
+  Future<void> cancelTicket(String ticketId) async {
+    await _client
+        .from('queue_tickets')
+        .update({
+          'status': 'cancelled',
+          'cancel_reason': 'Dibatalkan oleh pasien',
+          'cancelled_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', ticketId)
+        .eq('status', 'waiting');
   }
 
   RealtimeChannel subscribeToTicket({

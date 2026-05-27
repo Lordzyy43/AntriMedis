@@ -12,6 +12,7 @@ class QueueProvider extends ChangeNotifier {
   final QueueRepository _repository;
 
   List<ScheduleAvailability> _schedules = [];
+  List<QueueTicketDetail> _tickets = [];
   QueueTicketDetail? _activeTicket;
   RealtimeChannel? _channel;
   bool _isLoading = false;
@@ -20,6 +21,9 @@ class QueueProvider extends ChangeNotifier {
   String? _lastTicketStatus;
 
   List<ScheduleAvailability> get schedules => _schedules;
+  List<QueueTicketDetail> get tickets => _tickets;
+  List<QueueTicketDetail> get historyTickets =>
+      _tickets.where((ticket) => !ticket.isActive).toList();
   QueueTicketDetail? get activeTicket => _activeTicket;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -30,9 +34,11 @@ class QueueProvider extends ChangeNotifier {
       final results = await Future.wait([
         _repository.fetchSchedules(),
         _repository.fetchActiveTicket(),
+        _repository.fetchMyTickets(),
       ]);
       _schedules = results[0] as List<ScheduleAvailability>;
       _activeTicket = results[1] as QueueTicketDetail?;
+      _tickets = results[2] as List<QueueTicketDetail>;
       _lastTicketStatus = _activeTicket?.status;
       _subscribeActiveTicket();
       _error = null;
@@ -47,6 +53,7 @@ class QueueProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       _activeTicket = await _repository.createTicket(schedule.queueSessionId);
+      _tickets = await _repository.fetchMyTickets();
       _lastTicketStatus = _activeTicket?.status;
       _subscribeActiveTicket();
       _error = null;
@@ -73,6 +80,7 @@ class QueueProvider extends ChangeNotifier {
         await _maybeNotify(ticket, previousStatus ?? _lastTicketStatus);
         _lastTicketStatus = ticket.status;
       }
+      _tickets = await _repository.fetchMyTickets();
       notifyListeners();
     } catch (_) {
       // Realtime refresh failures are non-blocking; manual refresh still works.
@@ -86,11 +94,49 @@ class QueueProvider extends ChangeNotifier {
     }
     _channel = null;
     _schedules = [];
+    _tickets = [];
     _activeTicket = null;
     _error = null;
     _lastTicketStatus = null;
     _notifiedTicketId = null;
     notifyListeners();
+  }
+
+  Future<void> refreshTickets() async {
+    try {
+      _tickets = await _repository.fetchMyTickets();
+      _activeTicket = await _repository.fetchActiveTicket();
+      _lastTicketStatus = _activeTicket?.status;
+      _subscribeActiveTicket();
+      _error = null;
+      notifyListeners();
+    } catch (_) {
+      _error = 'Gagal memuat data antrean.';
+      notifyListeners();
+    }
+  }
+
+  Future<bool> cancelActiveTicket() async {
+    final ticket = _activeTicket;
+    if (ticket == null || !ticket.canCancel) return false;
+
+    _setLoading(true);
+    try {
+      await _repository.cancelTicket(ticket.ticketId);
+      _activeTicket = null;
+      _tickets = await _repository.fetchMyTickets();
+      _subscribeActiveTicket();
+      _error = null;
+      return true;
+    } on PostgrestException catch (error) {
+      _error = error.message;
+      return false;
+    } catch (_) {
+      _error = 'Gagal membatalkan antrean.';
+      return false;
+    } finally {
+      _setLoading(false);
+    }
   }
 
   Future<void> _maybeNotify(

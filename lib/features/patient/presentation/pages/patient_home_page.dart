@@ -6,6 +6,7 @@ import '../../../../core/widgets/app_error_banner.dart';
 import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/section_header.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../clinic/providers/clinic_provider.dart';
 import '../../../queue/data/models/schedule_availability.dart';
 import '../../../queue/providers/queue_provider.dart';
 import 'queue_tracking_page.dart';
@@ -30,14 +31,12 @@ class _PatientHomePageState extends State<PatientHomePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<QueueProvider>().loadHome();
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final queue = context.watch<QueueProvider>();
+    final clinic = context.watch<ClinicProvider>().branch;
     final user = context.watch<AuthProvider>().user;
     final activeTicket = queue.activeTicket;
     final polyclinicOptions = _polyclinicOptions(queue.schedules);
@@ -50,21 +49,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Klinik Sehat Sentosa'),
-        actions: [
-          IconButton(
-            tooltip: 'Keluar',
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              final queueProvider = context.read<QueueProvider>();
-              final authProvider = context.read<AuthProvider>();
-              await queueProvider.clearForSignOut();
-              await authProvider.signOut();
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Klinik Sehat Sentosa')),
       body: RefreshIndicator(
         onRefresh: queue.loadHome,
         child: ListView(
@@ -75,7 +60,15 @@ class _PatientHomePageState extends State<PatientHomePage> {
             AppSpacing.xxl,
           ),
           children: [
-            ClinicHero(email: user?.email),
+            ClinicHero(
+              email: user?.email,
+              clinicName: 'Klinik Sehat Sentosa',
+              branchName: clinic?.name ?? 'Cabang Utama',
+              operationalHours: clinic?.operationalHours ?? '08.00-20.00',
+              address:
+                  clinic?.fullAddress ??
+                  'Ambil nomor antrean poli dan pantau estimasi waktu tunggu secara real-time.',
+            ),
             const SizedBox(height: AppSpacing.lg),
             TodaySummary(
               scheduleCount: queue.schedules.length,
@@ -93,7 +86,8 @@ class _PatientHomePageState extends State<PatientHomePage> {
             ],
             SectionHeader(
               title: 'Jadwal praktik hari ini',
-              subtitle: 'Cabang Utama · pilih poli dan dokter tujuan',
+              subtitle:
+                  '${clinic?.name ?? 'Cabang Utama'} - pilih poli dan dokter tujuan',
               trailing: IconButton(
                 tooltip: 'Muat ulang',
                 onPressed: queue.isLoading ? null : queue.loadHome,
@@ -111,7 +105,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
                 icon: Icons.event_busy_outlined,
                 title: 'Jadwal belum tersedia',
                 message:
-                    'Tarik layar ke bawah untuk memuat ulang jadwal klinik.',
+                    'Admin klinik belum membuka jadwal antrean. Coba muat ulang setelah jadwal dibuat dari admin panel.',
               )
             else ...[
               PolyclinicFilter(

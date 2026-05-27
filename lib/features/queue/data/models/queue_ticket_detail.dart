@@ -6,12 +6,17 @@ class QueueTicketDetail {
     required this.queueCode,
     required this.status,
     required this.estimatedWaitMinutes,
+    required this.createdAt,
+    required this.calledAt,
+    required this.servingStartedAt,
+    required this.completedAt,
     required this.currentNumber,
     required this.lastNumber,
     required this.scheduleDate,
     required this.startTime,
     required this.endTime,
     required this.branchName,
+    required this.branchAddress,
     required this.polyclinicName,
     required this.doctorName,
     required this.specialization,
@@ -23,12 +28,17 @@ class QueueTicketDetail {
   final String queueCode;
   final String status;
   final int estimatedWaitMinutes;
+  final DateTime createdAt;
+  final DateTime? calledAt;
+  final DateTime? servingStartedAt;
+  final DateTime? completedAt;
   final int currentNumber;
   final int lastNumber;
   final DateTime scheduleDate;
   final String startTime;
   final String endTime;
   final String branchName;
+  final String? branchAddress;
   final String polyclinicName;
   final String doctorName;
   final String? specialization;
@@ -43,6 +53,7 @@ class QueueTicketDetail {
   }
 
   bool get isActive => ['waiting', 'called', 'serving'].contains(status);
+  bool get canCancel => status == 'waiting';
 
   factory QueueTicketDetail.fromJson(Map<String, dynamic> json) {
     return QueueTicketDetail(
@@ -52,15 +63,25 @@ class QueueTicketDetail {
       queueCode: json['queue_code'] as String,
       status: json['status'] as String,
       estimatedWaitMinutes: json['estimated_wait_minutes'] as int,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      calledAt: _parseNullableDate(json['called_at']),
+      servingStartedAt: _parseNullableDate(json['serving_started_at']),
+      completedAt: _parseNullableDate(json['completed_at']),
       currentNumber: json['current_number'] as int,
       lastNumber: json['last_number'] as int,
       scheduleDate: DateTime.parse(json['schedule_date'] as String),
       startTime: (json['start_time'] as String).substring(0, 5),
       endTime: (json['end_time'] as String).substring(0, 5),
       branchName: json['branch_name'] as String,
+      branchAddress: json['branch_address'] as String?,
       polyclinicName: json['polyclinic_name'] as String,
       doctorName: json['doctor_name'] as String,
       specialization: json['specialization'] as String?,
     );
+  }
+
+  static DateTime? _parseNullableDate(Object? value) {
+    if (value == null) return null;
+    return DateTime.parse(value as String);
   }
 }

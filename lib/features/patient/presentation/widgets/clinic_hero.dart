@@ -6,9 +6,20 @@ import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_card.dart';
 
 class ClinicHero extends StatelessWidget {
-  const ClinicHero({super.key, required this.email});
+  const ClinicHero({
+    super.key,
+    required this.email,
+    required this.clinicName,
+    required this.branchName,
+    required this.operationalHours,
+    required this.address,
+  });
 
   final String? email;
+  final String clinicName;
+  final String branchName;
+  final String operationalHours;
+  final String address;
 
   @override
   Widget build(BuildContext context) {
@@ -35,15 +46,15 @@ class ClinicHero extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const AppBadge(
-                        label: 'Cabang Utama',
+                      AppBadge(
+                        label: branchName,
                         icon: Icons.apartment_outlined,
                         color: AppColors.primaryDark,
                         backgroundColor: Colors.white,
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       AppBadge(
-                        label: 'Buka 08.00-20.00',
+                        label: operationalHours,
                         icon: Icons.schedule_outlined,
                         color: AppColors.success,
                         backgroundColor: AppColors.successSoft,
@@ -52,16 +63,16 @@ class ClinicHero extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Text(
-                    'Klinik Sehat Sentosa',
+                    clinicName,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  const Text(
-                    'Ambil nomor antrean poli dan pantau estimasi waktu tunggu secara real-time.',
-                    style: TextStyle(
+                  Text(
+                    address,
+                    style: const TextStyle(
                       color: Color(0xDFFFFFFF),
                       height: 1.45,
                       fontWeight: FontWeight.w600,
