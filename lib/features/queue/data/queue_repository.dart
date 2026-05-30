@@ -75,16 +75,12 @@ class QueueRepository {
     return QueueTicketDetail.fromJson(data);
   }
 
-  Future<void> cancelTicket(String ticketId) async {
-    await _client
-        .from('queue_tickets')
-        .update({
-          'status': 'cancelled',
-          'cancel_reason': 'Dibatalkan oleh pasien',
-          'cancelled_at': DateTime.now().toUtc().toIso8601String(),
-        })
-        .eq('id', ticketId)
-        .eq('status', 'waiting');
+  Future<QueueTicketDetail> cancelTicket(String ticketId) async {
+    final ticket = await _client.rpc<Map<String, dynamic>>(
+      'cancel_my_ticket',
+      params: {'p_ticket_id': ticketId, 'p_message': 'Dibatalkan oleh pasien'},
+    );
+    return fetchTicketDetail(ticket['id'] as String);
   }
 
   RealtimeChannel subscribeToTicket({

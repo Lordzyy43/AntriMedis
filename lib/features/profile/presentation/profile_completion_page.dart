@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -9,12 +11,18 @@ import '../../../core/widgets/app_error_banner.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../../queue/providers/queue_provider.dart';
+import '../data/models/patient_profile.dart';
 import '../providers/profile_provider.dart';
 
 class ProfileCompletionPage extends StatefulWidget {
-  const ProfileCompletionPage({super.key, this.isEditing = false});
+  const ProfileCompletionPage({
+    super.key,
+    this.isEditing = false,
+    this.closeAfterSave = false,
+  });
 
   final bool isEditing;
+  final bool closeAfterSave;
 
   @override
   State<ProfileCompletionPage> createState() => _ProfileCompletionPageState();
@@ -24,6 +32,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _imagePicker = ImagePicker();
 
   DateTime? _birthDate;
   String? _gender;
@@ -40,7 +49,11 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   Widget build(BuildContext context) {
     final profileProvider = context.watch<ProfileProvider>();
     final profile = profileProvider.profile;
-    final email = context.watch<AuthProvider>().user?.email;
+    final user = context.watch<AuthProvider>().user;
+    final email = user?.email;
+    final googleAvatarUrl =
+        user?.userMetadata?['avatar_url'] as String? ??
+        user?.userMetadata?['picture'] as String?;
 
     if (!_hasSeededFields && profile != null) {
       _hasSeededFields = true;
@@ -56,11 +69,22 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.xl),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            AppSpacing.xl,
+            AppSpacing.xl,
+            112,
+          ),
           children: [
             _Header(
               isEditing: widget.isEditing,
-              profileName: profile?.fullName,
+              profile: profile,
+              email: email,
+              googleAvatarUrl: googleAvatarUrl,
+              isAvatarSaving: profileProvider.isAvatarSaving,
+              onSyncAvatar: () => _syncGoogleAvatar(googleAvatarUrl),
+              onChangeAvatar: _showAvatarPicker,
+              onRemoveAvatar: _confirmRemoveAvatar,
             ),
             const SizedBox(height: AppSpacing.xl),
             if (profileProvider.error != null) ...[
@@ -229,8 +253,188 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       gender: _gender!,
       birthDate: _birthDate,
     );
-    if (!mounted || !ok || !widget.isEditing) return;
-    Navigator.of(context).pop();
+    if (!mounted || !ok) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profil pasien berhasil disimpan.')),
+    );
+    if (widget.closeAfterSave) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _syncGoogleAvatar(String? googleAvatarUrl) async {
+    if (googleAvatarUrl == null || googleAvatarUrl.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Avatar Google tidak tersedia untuk akun ini.'),
+        ),
+      );
+      return;
+    }
+
+    final ok = await context.read<ProfileProvider>().updateAvatarUrl(
+      googleAvatarUrl,
+    );
+    if (!mounted || !ok) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Avatar berhasil disinkronkan.')),
+    );
+  }
+
+  Future<void> _showAvatarPicker() async {
+    final action = await showModalBottomSheet<_AvatarAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final hasAvatar =
+            context.read<ProfileProvider>().profile?.avatarUrl?.isNotEmpty ??
+            false;
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ubah avatar',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                const Text(
+                  'Pilih foto yang jelas agar klinik lebih mudah mengenali pasien.',
+                  style: TextStyle(color: AppColors.textMuted, height: 1.4),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                _AvatarActionTile(
+                  icon: Icons.photo_library_outlined,
+                  title: 'Pilih dari galeri',
+                  subtitle: 'Gunakan foto yang sudah ada di perangkat.',
+                  onTap: () => Navigator.of(context).pop(_AvatarAction.gallery),
+                ),
+                _AvatarActionTile(
+                  icon: Icons.photo_camera_outlined,
+                  title: 'Ambil foto',
+                  subtitle: 'Buka kamera untuk foto pasien terbaru.',
+                  onTap: () => Navigator.of(context).pop(_AvatarAction.camera),
+                ),
+                if (hasAvatar)
+                  _AvatarActionTile(
+                    icon: Icons.delete_outline,
+                    title: 'Hapus avatar',
+                    subtitle: 'Kembali gunakan inisial nama pasien.',
+                    isDanger: true,
+                    onTap: () =>
+                        Navigator.of(context).pop(_AvatarAction.remove),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (action == null) return;
+    switch (action) {
+      case _AvatarAction.gallery:
+        await _pickAndUploadAvatar(ImageSource.gallery);
+      case _AvatarAction.camera:
+        await _pickAndUploadAvatar(ImageSource.camera);
+      case _AvatarAction.remove:
+        await _confirmRemoveAvatar();
+    }
+  }
+
+  Future<void> _pickAndUploadAvatar(ImageSource source) async {
+    final XFile? picked;
+    try {
+      picked = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 900,
+        maxHeight: 900,
+        imageQuality: 88,
+      );
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_friendlyPickerError(error))));
+      return;
+    }
+    if (picked == null) return;
+
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return;
+    if (bytes.length > 2 * 1024 * 1024) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ukuran avatar maksimal 2 MB. Pilih foto lain.'),
+        ),
+      );
+      return;
+    }
+
+    final ok = await context.read<ProfileProvider>().uploadAvatar(
+      bytes: bytes,
+      extension: _extensionFromName(picked.name),
+    );
+    if (!mounted || !ok) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Avatar berhasil diperbarui.')),
+    );
+  }
+
+  Future<void> _confirmRemoveAvatar() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Hapus avatar?'),
+          content: const Text(
+            'Foto profil akan diganti dengan inisial nama pasien.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Hapus'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (ok != true || !mounted) return;
+    final removed = await context.read<ProfileProvider>().removeAvatar();
+    if (!mounted || !removed) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Avatar berhasil dihapus.')));
+  }
+
+  String _extensionFromName(String name) {
+    final parts = name.split('.');
+    if (parts.length < 2) return 'jpg';
+    return parts.last;
+  }
+
+  String _friendlyPickerError(PlatformException error) {
+    final code = error.code.toLowerCase();
+    if (code.contains('camera_access_denied') ||
+        code.contains('photo_access_denied') ||
+        code.contains('permission')) {
+      return 'Izin kamera atau galeri belum diberikan. Aktifkan izin aplikasi di pengaturan perangkat.';
+    }
+    return 'Avatar belum bisa dipilih. Coba gunakan foto lain atau ulangi beberapa saat lagi.';
   }
 
   Future<void> _signOut() async {
@@ -246,48 +450,371 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.isEditing, required this.profileName});
+  const _Header({
+    required this.isEditing,
+    required this.profile,
+    required this.email,
+    required this.googleAvatarUrl,
+    required this.isAvatarSaving,
+    required this.onSyncAvatar,
+    required this.onChangeAvatar,
+    required this.onRemoveAvatar,
+  });
 
   final bool isEditing;
-  final String? profileName;
+  final PatientProfile? profile;
+  final String? email;
+  final String? googleAvatarUrl;
+  final bool isAvatarSaving;
+  final VoidCallback onSyncAvatar;
+  final VoidCallback onChangeAvatar;
+  final VoidCallback onRemoveAvatar;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 58,
-          height: 58,
-          decoration: BoxDecoration(
-            color: AppColors.primarySoft,
-            borderRadius: BorderRadius.circular(AppRadius.xl),
+    final name = profile?.fullName.trim();
+    final displayName = name == null || name.isEmpty
+        ? 'Pasien AntriMedis'
+        : name;
+    final avatarUrl = profile?.avatarUrl ?? googleAvatarUrl;
+    final completion = _completionScore(profile);
+    final statusLabel = profile?.isComplete == true
+        ? 'Profil lengkap'
+        : 'Perlu dilengkapi';
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF075E5D), AppColors.primaryDark],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(AppRadius.lg),
+              ),
+            ),
+            child: Row(
+              children: [
+                _ProfileAvatar(
+                  name: displayName,
+                  avatarUrl: avatarUrl,
+                  isSaving: isAvatarSaving,
+                  onTap: onChangeAvatar,
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        email ?? '-',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          isEditing ? 'Akun pasien' : 'Verifikasi pasien',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: const Icon(
-            Icons.person_outline,
-            color: AppColors.primaryDark,
-            size: 30,
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        statusLabel,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    Text(
+                      '${(completion * 100).round()}%',
+                      style: const TextStyle(
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: 8,
+                    value: completion,
+                    color: profile?.isComplete == true
+                        ? AppColors.success
+                        : AppColors.primary,
+                    backgroundColor: AppColors.border,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  isEditing
+                      ? 'Perbarui data dan avatar yang digunakan klinik untuk mengenali pasien.'
+                      : 'Lengkapi profil pasien sebelum mengambil nomor antrean.',
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    height: 1.4,
+                  ),
+                ),
+                if (googleAvatarUrl != null &&
+                    googleAvatarUrl!.trim().isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: isAvatarSaving ? null : onChangeAvatar,
+                          icon: const Icon(Icons.add_a_photo_outlined),
+                          label: const Text('Upload Avatar'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: isAvatarSaving ? null : onSyncAvatar,
+                          icon: const Icon(Icons.sync_outlined),
+                          label: const Text('Dari Google'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  const SizedBox(height: AppSpacing.md),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: isAvatarSaving ? null : onChangeAvatar,
+                      icon: const Icon(Icons.add_a_photo_outlined),
+                      label: const Text('Upload Avatar'),
+                    ),
+                  ),
+                ],
+                if (profile?.avatarUrl?.trim().isNotEmpty ?? false) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: isAvatarSaving ? null : onRemoveAvatar,
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Hapus Avatar'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        Text(
-          isEditing ? 'Kelola akun pasien.' : 'Satu langkah lagi.',
-          style: Theme.of(context).textTheme.headlineLarge,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          isEditing
-              ? 'Perbarui data yang digunakan klinik untuk mengenali pasien.'
-              : profileName == null || profileName!.isEmpty
-              ? 'Lengkapi profil pasien sebelum mengambil nomor antrean.'
-              : 'Halo, $profileName. Lengkapi data pasien sebelum mengambil nomor antrean.',
-          style: const TextStyle(
-            color: AppColors.textMuted,
-            fontSize: 16,
-            height: 1.45,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  double _completionScore(PatientProfile? profile) {
+    if (profile == null) return 0.25;
+    var completed = 0;
+    if (profile.fullName.trim().length >= 3) completed++;
+    if (profile.phoneNumber?.trim().isNotEmpty ?? false) completed++;
+    if (profile.gender?.trim().isNotEmpty ?? false) completed++;
+    if (profile.birthDate != null) completed++;
+    return (completed / 4).clamp(0.0, 1.0);
+  }
+}
+
+enum _AvatarAction { gallery, camera, remove }
+
+class _AvatarActionTile extends StatelessWidget {
+  const _AvatarActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.isDanger = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool isDanger;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDanger ? AppColors.danger : AppColors.primaryDark;
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: isDanger ? AppColors.dangerSoft : AppColors.primarySoft,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Icon(icon, color: color),
+      ),
+      title: Text(title, style: TextStyle(color: color)),
+      subtitle: Text(subtitle),
+      onTap: onTap,
+    );
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({
+    required this.name,
+    required this.avatarUrl,
+    required this.isSaving,
+    required this.onTap,
+  });
+
+  final String name;
+  final String? avatarUrl;
+  final bool isSaving;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAvatar = avatarUrl != null && avatarUrl!.trim().isNotEmpty;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(30),
+      onTap: isSaving ? null : onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 92,
+            height: 92,
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.38)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x33000000),
+                  blurRadius: 18,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(26),
+              child: hasAvatar
+                  ? Image.network(
+                      avatarUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _InitialsAvatar(name: name),
+                    )
+                  : _InitialsAvatar(name: name),
+            ),
+          ),
+          Positioned(
+            right: -2,
+            bottom: -2,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppColors.primarySoft, width: 2),
+              ),
+              child: isSaving
+                  ? const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(
+                      Icons.photo_camera_outlined,
+                      color: AppColors.primaryDark,
+                      size: 17,
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InitialsAvatar extends StatelessWidget {
+  const _InitialsAvatar({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppColors.primarySoft,
+      child: Center(
+        child: Text(
+          _initials(name),
+          style: const TextStyle(
+            color: AppColors.primaryDark,
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _initials(String value) {
+    final words = value
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .toList();
+    if (words.isEmpty) return 'AM';
+    if (words.length == 1) {
+      return words.first.substring(0, 1).toUpperCase();
+    }
+    return '${words.first[0]}${words.last[0]}'.toUpperCase();
   }
 }

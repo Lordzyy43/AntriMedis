@@ -4,9 +4,16 @@ import '../config/app_colors.dart';
 import '../config/app_spacing.dart';
 
 class AppErrorBanner extends StatelessWidget {
-  const AppErrorBanner({super.key, required this.message});
+  const AppErrorBanner({
+    super.key,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +38,10 @@ class AppErrorBanner extends StatelessWidget {
               ),
             ),
           ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(width: AppSpacing.sm),
+            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
         ],
       ),
     );

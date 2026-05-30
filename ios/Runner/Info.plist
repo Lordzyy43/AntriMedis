@@ -39,6 +39,10 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>AntriMedis membutuhkan kamera untuk mengambil foto avatar pasien.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>AntriMedis membutuhkan akses galeri untuk memilih foto avatar pasien.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

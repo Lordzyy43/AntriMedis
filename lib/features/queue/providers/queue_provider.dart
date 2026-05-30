@@ -59,7 +59,7 @@ class QueueProvider extends ChangeNotifier {
       _error = null;
       return true;
     } on PostgrestException catch (error) {
-      _error = error.message;
+      _error = _friendlyQueueError(error.message);
       return false;
     } catch (error) {
       _error = 'Gagal mengambil nomor antrean.';
@@ -129,7 +129,7 @@ class QueueProvider extends ChangeNotifier {
       _error = null;
       return true;
     } on PostgrestException catch (error) {
-      _error = error.message;
+      _error = _friendlyQueueError(error.message);
       return false;
     } catch (_) {
       _error = 'Gagal membatalkan antrean.';
@@ -188,6 +188,36 @@ class QueueProvider extends ChangeNotifier {
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
+  }
+
+  String _friendlyQueueError(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains('already has active queue')) {
+      return 'Anda sudah memiliki antrean aktif hari ini.';
+    }
+    if (lower.contains('quota is full')) {
+      return 'Kuota antrean jadwal ini sudah penuh.';
+    }
+    if (lower.contains('session is closed')) {
+      return 'Sesi antrean sudah ditutup oleh klinik.';
+    }
+    if (lower.contains('only waiting queue can be cancelled')) {
+      return 'Antrean sudah diproses petugas sehingga tidak bisa dibatalkan dari aplikasi.';
+    }
+    if (lower.contains('invalid queue status transition')) {
+      return 'Status antrean sudah berubah. Silakan muat ulang data.';
+    }
+    if (lower.contains('schedule is not open')) {
+      return 'Jadwal praktik belum dibuka atau sudah ditutup.';
+    }
+    if (lower.contains('not found')) {
+      return 'Data antrean tidak ditemukan. Silakan muat ulang.';
+    }
+    if (lower.contains('row-level security') ||
+        lower.contains('violates row-level')) {
+      return 'Akses data antrean ditolak oleh policy Supabase.';
+    }
+    return message;
   }
 
   @override

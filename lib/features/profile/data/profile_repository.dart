@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -41,9 +43,7 @@ class ProfileRepository {
       'p_birth_date': birthDate == null
           ? null
           : DateFormat('yyyy-MM-dd').format(birthDate),
-      'p_avatar_url':
-          user?.userMetadata?['avatar_url'] as String? ??
-          user?.userMetadata?['picture'] as String?,
+      'p_avatar_url': null,
     };
 
     try {
@@ -67,11 +67,84 @@ class ProfileRepository {
           'phone_number': payload['p_phone_number'],
           'gender': payload['p_gender'],
           'birth_date': payload['p_birth_date'],
-          'avatar_url': payload['p_avatar_url'],
         })
         .select()
         .single();
 
     return PatientProfile.fromJson(data);
+  }
+
+  Future<PatientProfile> removeMyAvatar() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AuthException('Sesi login tidak ditemukan.');
+    }
+
+    final data = await _client
+        .from('profiles')
+        .update({'avatar_url': null})
+        .eq('id', userId)
+        .select()
+        .single();
+
+    return PatientProfile.fromJson(data);
+  }
+
+  Future<PatientProfile> updateMyAvatarUrl(String avatarUrl) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AuthException('Sesi login tidak ditemukan.');
+    }
+
+    final data = await _client
+        .from('profiles')
+        .update({'avatar_url': avatarUrl.trim()})
+        .eq('id', userId)
+        .select()
+        .single();
+
+    return PatientProfile.fromJson(data);
+  }
+
+  Future<PatientProfile> uploadAvatar({
+    required Uint8List bytes,
+    required String extension,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AuthException('Sesi login tidak ditemukan.');
+    }
+
+    final normalizedExtension = _normalizeExtension(extension);
+    final path =
+        '$userId/avatar-${DateTime.now().millisecondsSinceEpoch}.$normalizedExtension';
+    await _client.storage
+        .from('avatars')
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(
+            upsert: true,
+            contentType: _contentTypeFor(normalizedExtension),
+          ),
+        );
+
+    final publicUrl = _client.storage.from('avatars').getPublicUrl(path);
+    return updateMyAvatarUrl(publicUrl);
+  }
+
+  String _normalizeExtension(String extension) {
+    final lower = extension.toLowerCase().replaceAll('.', '');
+    if (lower == 'jpeg') return 'jpg';
+    if (lower == 'png' || lower == 'webp' || lower == 'jpg') return lower;
+    return 'jpg';
+  }
+
+  String _contentTypeFor(String extension) {
+    return switch (extension) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
   }
 }
