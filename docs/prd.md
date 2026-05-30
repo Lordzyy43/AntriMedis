@@ -4,6 +4,8 @@
 
 **Sistem Antrean Real-Time Klinik & Estimasi Waktu Tunggu**
 
+> Update status implementasi, gap, roadmap terbaru, dan strategi dokumentasi ada di `docs/prd_status_roadmap.md` dan `docs/documentation_strategy.md`.
+
 ---
 
 ## 1. Informasi Dokumen
@@ -18,8 +20,8 @@
 | Target Pengguna   | Pasien dan Admin Klinik untuk MVP                             |
 | Target Proyek     | UAS Mobile + Portfolio Full-Stack                             |
 | Tingkat Kesulitan | Hard                                                          |
-| Versi Dokumen     | v1.0                                                          |
-| Status            | Draft Detail                                                  |
+| Versi Dokumen     | v1.1                                                          |
+| Status            | Scope MVP dikunci untuk satu klinik, implementation hardening |
 
 ---
 

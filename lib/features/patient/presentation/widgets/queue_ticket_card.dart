@@ -93,7 +93,7 @@ class QueueTicketCard extends StatelessWidget {
                   icon: Icons.schedule_outlined,
                   label: 'Jadwal',
                   value:
-                      '${DateFormat('dd MMM').format(ticket.scheduleDate)} · ${ticket.startTime}-${ticket.endTime}',
+                      '${DateFormat('dd MMM').format(ticket.scheduleDate)} - ${ticket.startTime}-${ticket.endTime}',
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 _MetaRow(

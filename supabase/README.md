@@ -24,6 +24,23 @@ Docker Desktop is required only for local Supabase services, local reset, and da
 
 The migration creates patient profiles automatically when a user signs up through Supabase Auth.
 
+Current professional demo admin:
+
+```txt
+Email    : admin@antrimedis.test
+Password : AdminMedis2026!
+Name     : Nadia Prameswari
+Role     : admin
+Branch   : Cabang Utama Patrang
+Title    : Koordinator Front Office
+```
+
+To reset operational data and reseed the professional demo clinic dataset, run:
+
+```bash
+supabase db query --linked --file supabase/patches/20260528_clean_professional_demo_seed.sql
+```
+
 To create an admin:
 
 1. Create an auth user from Supabase Dashboard, or register normally from the app.
@@ -56,16 +73,23 @@ npm run smoke:supabase:bootstrap
 
 Remove `SUPABASE_SERVICE_ROLE_KEY` from `.env.local` after bootstrap. The file is ignored by Git.
 
-## Demo Queue Sessions
+## Professional Demo Dataset
 
-The first migration seeds one clinic, one branch, three polyclinics, three doctors, today's schedules, and queue sessions:
+The professional seed script creates a richer clinic demo dataset for mobile and admin testing:
 
 ```txt
 Klinik Sehat Sentosa
-Cabang Utama
-Poli Umum  -> U001, U002, ...
-Poli Gigi  -> G001, G002, ...
-Poli Anak  -> A001, A002, ...
+Cabang Utama Patrang
+6 poli aktif
+8 dokter/tenaga layanan aktif
+11 jadwal lintas kemarin, hari ini, besok, dan lusa
+0 tiket antrean awal
+0 queue events awal
+0 notifications awal
 ```
+
+Patient accounts are intentionally not seeded. Use the currently logged-in
+mobile user to take a queue number, so tracking/progress belongs to the real
+test account instead of a demo patient.
 
 Use `v_schedule_availability` to list available schedules in the mobile app.

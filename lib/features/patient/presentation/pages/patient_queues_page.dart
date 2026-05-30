@@ -37,7 +37,7 @@ class PatientQueuesPage extends StatelessWidget {
             AppSpacing.lg,
             AppSpacing.sm,
             AppSpacing.lg,
-            AppSpacing.xxl,
+            104,
           ),
           children: [
             if (queue.error != null) ...[

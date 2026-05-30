@@ -37,7 +37,7 @@ class NotificationsPage extends StatelessWidget {
             AppSpacing.lg,
             AppSpacing.sm,
             AppSpacing.lg,
-            AppSpacing.xxl,
+            104,
           ),
           children: [
             if (provider.error != null) ...[

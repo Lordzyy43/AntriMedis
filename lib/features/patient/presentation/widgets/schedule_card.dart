@@ -13,11 +13,13 @@ class ScheduleCard extends StatelessWidget {
     required this.schedule,
     required this.isDisabled,
     required this.onTakeQueue,
+    this.disabledLabel,
   });
 
   final ScheduleAvailability schedule;
   final bool isDisabled;
   final VoidCallback onTakeQueue;
+  final String? disabledLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -28,68 +30,75 @@ class ScheduleCard extends StatelessWidget {
         : (schedule.totalTaken / schedule.quotaLimit).clamp(0.0, 1.0);
 
     return AppCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: serviceColor.$2,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Text(
-                  schedule.queuePrefix,
-                  style: TextStyle(
-                    color: serviceColor.$1,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: serviceColor.$2,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(
+                      color: serviceColor.$1.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Text(
+                    schedule.queuePrefix,
+                    style: TextStyle(
+                      color: serviceColor.$1,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      schedule.polyclinicName,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      schedule.doctorName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (schedule.specialization != null) ...[
-                      const SizedBox(height: 3),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        schedule.specialization!,
-                        maxLines: 1,
+                        schedule.polyclinicName,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        schedule.doctorName,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textMuted,
-                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
+                      if (schedule.specialization != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          schedule.specialization!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              _QuotaBadge(remaining: schedule.remainingQuota),
-            ],
+                _QuotaBadge(remaining: schedule.remainingQuota),
+              ],
+            ),
           ),
-          const SizedBox(height: AppSpacing.lg),
           Container(
+            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
               color: AppColors.surfaceMuted,
@@ -113,59 +122,71 @@ class ScheduleCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              AppBadge(
-                label: date,
-                icon: Icons.event_available_outlined,
-                color: AppColors.primaryDark,
-                backgroundColor: AppColors.primarySoft,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: AppBadge(
-                  label: '${schedule.averageServiceMinutes} mnt / pasien',
-                  icon: Icons.timer_outlined,
-                  color: AppColors.violet,
-                  backgroundColor: AppColors.violetSoft,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              minHeight: 8,
-              value: quotaProgress,
-              color: schedule.remainingQuota <= 5
-                  ? AppColors.warning
-                  : AppColors.primary,
-              backgroundColor: AppColors.border,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.md,
+              AppSpacing.lg,
+              AppSpacing.lg,
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Diambil ${schedule.totalTaken}/${schedule.quotaLimit}',
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.w700,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    AppBadge(
+                      label: date,
+                      icon: Icons.event_available_outlined,
+                      color: AppColors.primaryDark,
+                      backgroundColor: AppColors.primarySoft,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: AppBadge(
+                        label:
+                            '± ${schedule.averageServiceMinutes} mnt / pasien',
+                        icon: Icons.timer_outlined,
+                        color: AppColors.violet,
+                        backgroundColor: AppColors.violetSoft,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: 8,
+                    value: quotaProgress,
+                    color: schedule.remainingQuota <= 5
+                        ? AppColors.warning
+                        : AppColors.primary,
+                    backgroundColor: AppColors.border,
                   ),
                 ),
-              ),
-              SizedBox(
-                width: 150,
-                child: ElevatedButton.icon(
-                  onPressed: isDisabled ? null : onTakeQueue,
-                  icon: const Icon(Icons.confirmation_number_outlined),
-                  label: Text(isDisabled ? 'Aktif' : 'Ambil Nomor'),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Diambil ${schedule.totalTaken}/${schedule.quotaLimit}',
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 150,
+                      child: ElevatedButton.icon(
+                        onPressed: isDisabled ? null : onTakeQueue,
+                        icon: const Icon(Icons.confirmation_number_outlined),
+                        label: Text(disabledLabel ?? 'Ambil Nomor'),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

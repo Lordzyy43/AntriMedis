@@ -37,34 +37,45 @@ class _PatientShellPageState extends State<PatientShellPage> {
 
     return Scaffold(
       extendBody: true,
-      body: Padding(
-        padding: const EdgeInsets.only(bottom: 88),
-        child: IndexedStack(
-          index: _selectedIndex,
-          children: const [
-            PatientHomePage(),
-            PatientQueuesPage(),
-            NotificationsPage(),
-            ProfileCompletionPage(isEditing: true),
-          ],
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          0,
-          AppSpacing.lg,
-          AppSpacing.md,
-        ),
-        child: _FloatingPatientNav(
-          selectedIndex: _selectedIndex,
-          unreadCount: unreadCount,
-          onSelected: (index) {
-            setState(() => _selectedIndex = index);
-            if (index == 1) context.read<QueueProvider>().refreshTickets();
-            if (index == 2) context.read<NotificationProvider>().load();
-          },
-        ),
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _selectedIndex,
+            children: const [
+              PatientHomePage(),
+              PatientQueuesPage(),
+              NotificationsPage(),
+              ProfileCompletionPage(isEditing: true),
+            ],
+          ),
+          Positioned(
+            left: AppSpacing.lg,
+            right: AppSpacing.lg,
+            bottom: 0,
+            child: SafeArea(
+              minimum: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 380),
+                  child: _FloatingPatientNav(
+                    selectedIndex: _selectedIndex,
+                    unreadCount: unreadCount,
+                    onSelected: (index) {
+                      setState(() => _selectedIndex = index);
+                      if (index == 1) {
+                        context.read<QueueProvider>().refreshTickets();
+                      }
+                      if (index == 2) {
+                        context.read<NotificationProvider>().load();
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -110,18 +121,18 @@ class _FloatingPatientNav extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.85)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x260F172A),
-            blurRadius: 28,
-            offset: Offset(0, 14),
+            color: Color(0x1F0F172A),
+            blurRadius: 22,
+            offset: Offset(0, 10),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(7),
+        padding: const EdgeInsets.all(5),
         child: Row(
           children: [
             for (var index = 0; index < items.length; index++)
@@ -155,15 +166,15 @@ class _FloatingNavItem extends StatelessWidget {
     return Tooltip(
       message: data.label,
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(999),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
-          height: 58,
+          height: 46,
           decoration: BoxDecoration(
             color: isSelected ? AppColors.primaryDark : Colors.transparent,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -213,7 +224,7 @@ class _FloatingNavItem extends StatelessWidget {
                 duration: const Duration(milliseconds: 180),
                 style: TextStyle(
                   color: isSelected ? Colors.white : AppColors.textMuted,
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
                 ),
                 child: Text(

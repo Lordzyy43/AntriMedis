@@ -14,6 +14,7 @@ class ProfileProvider extends ChangeNotifier {
   bool _hasLoaded = false;
   bool _isLoading = false;
   bool _isSaving = false;
+  bool _isAvatarSaving = false;
   String? _error;
 
   PatientProfile? get profile => _profile;
@@ -21,6 +22,7 @@ class ProfileProvider extends ChangeNotifier {
   bool get hasLoaded => _hasLoaded;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
+  bool get isAvatarSaving => _isAvatarSaving;
   String? get error => _error;
   bool get needsCompletion => _profile == null || !_profile!.isComplete;
 
@@ -83,6 +85,75 @@ class ProfileProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateAvatarUrl(String avatarUrl) async {
+    _isAvatarSaving = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _profile = await _repository.updateMyAvatarUrl(avatarUrl);
+      _loadedUserId = _profile?.id;
+      _hasLoaded = true;
+      return true;
+    } on PostgrestException catch (error) {
+      _error = error.message;
+      return false;
+    } catch (_) {
+      _error = 'Gagal menyimpan avatar pasien.';
+      return false;
+    } finally {
+      _isAvatarSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> uploadAvatar({
+    required Uint8List bytes,
+    required String extension,
+  }) async {
+    _isAvatarSaving = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _profile = await _repository.uploadAvatar(
+        bytes: bytes,
+        extension: extension,
+      );
+      _loadedUserId = _profile?.id;
+      _hasLoaded = true;
+      return true;
+    } on StorageException catch (error) {
+      _error = error.message;
+      return false;
+    } catch (_) {
+      _error = 'Gagal mengunggah avatar pasien.';
+      return false;
+    } finally {
+      _isAvatarSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> removeAvatar() async {
+    _isAvatarSaving = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _profile = await _repository.removeMyAvatar();
+      _loadedUserId = _profile?.id;
+      _hasLoaded = true;
+      return true;
+    } on PostgrestException catch (error) {
+      _error = error.message;
+      return false;
+    } catch (_) {
+      _error = 'Gagal menghapus avatar pasien.';
+      return false;
+    } finally {
+      _isAvatarSaving = false;
+      notifyListeners();
+    }
+  }
+
   void clear() {
     _profile = null;
     _loadedUserId = null;
@@ -90,6 +161,7 @@ class ProfileProvider extends ChangeNotifier {
     _error = null;
     _isLoading = false;
     _isSaving = false;
+    _isAvatarSaving = false;
     notifyListeners();
   }
 }
