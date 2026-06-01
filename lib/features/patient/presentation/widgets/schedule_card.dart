@@ -28,6 +28,7 @@ class ScheduleCard extends StatelessWidget {
     final quotaProgress = schedule.quotaLimit == 0
         ? 0.0
         : (schedule.totalTaken / schedule.quotaLimit).clamp(0.0, 1.0);
+    final isUnavailable = !schedule.canTakeQueue;
 
     return AppCard(
       padding: EdgeInsets.zero,
@@ -93,7 +94,9 @@ class ScheduleCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                _QuotaBadge(remaining: schedule.remainingQuota),
+                isUnavailable
+                    ? _AvailabilityBadge(reason: schedule.availabilityReason)
+                    : _QuotaBadge(remaining: schedule.remainingQuota),
               ],
             ),
           ),
@@ -164,6 +167,40 @@ class ScheduleCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
+                if (isUnavailable) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningSoft.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.16),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          size: 18,
+                          color: AppColors.warning,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            schedule.availabilityReason,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w800,
+                              height: 1.25,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -176,11 +213,15 @@ class ScheduleCard extends StatelessWidget {
                       ),
                     ),
                     SizedBox(
-                      width: 150,
+                      width: 170,
                       child: ElevatedButton.icon(
                         onPressed: isDisabled ? null : onTakeQueue,
                         icon: const Icon(Icons.confirmation_number_outlined),
-                        label: Text(disabledLabel ?? 'Ambil Nomor'),
+                        label: Text(
+                          disabledLabel ?? 'Ambil Nomor',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                   ],
@@ -199,6 +240,25 @@ class ScheduleCard extends StatelessWidget {
       'A' => (AppColors.warning, AppColors.warningSoft),
       _ => (AppColors.primaryDark, AppColors.primarySoft),
     };
+  }
+}
+
+class _AvailabilityBadge extends StatelessWidget {
+  const _AvailabilityBadge({required this.reason});
+
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 150),
+      child: AppBadge(
+        label: reason,
+        icon: Icons.lock_clock_outlined,
+        color: AppColors.warning,
+        backgroundColor: AppColors.warningSoft,
+      ),
+    );
   }
 }
 

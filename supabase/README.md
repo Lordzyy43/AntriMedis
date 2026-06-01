@@ -10,19 +10,33 @@ Region      : Southeast Asia (Singapore)
 
 ## Local CLI
 
-The Supabase CLI is available through `npx` in this workspace:
+The Supabase CLI is available on this machine after adding the npm global path to `PATH`:
 
-```bash
-npx supabase projects list
-npx supabase migration list
-npx supabase db push
+```powershell
+$env:Path += ";$env:APPDATA\npm"
+supabase --version
+```
+
+If `supabase` is not recognized, use the direct executable:
+
+```powershell
+& "$env:APPDATA\npm\supabase.cmd" --version
+```
+
+Common commands:
+
+```powershell
+supabase link --project-ref vicwdxxjaoekppembbvt
+supabase migration list
+supabase db push
+supabase db query --linked --file supabase/patches/20260528_clean_professional_demo_seed.sql
 ```
 
 Docker Desktop is required only for local Supabase services, local reset, and database dump workflows.
 
 ## Admin Bootstrap
 
-The migration creates patient profiles automatically when a user signs up through Supabase Auth.
+The migration creates patient profiles automatically when a user signs up through Supabase Auth. Passwords are managed by Supabase Auth in the `auth` schema and are not stored in public tables.
 
 Current professional demo admin:
 
@@ -88,8 +102,32 @@ Cabang Utama Patrang
 0 notifications awal
 ```
 
-Patient accounts are intentionally not seeded. Use the currently logged-in
-mobile user to take a queue number, so tracking/progress belongs to the real
-test account instead of a demo patient.
+Patient accounts are intentionally not seeded. Use the currently logged-in mobile user to take a queue number, so tracking/progress belongs to the real test account instead of a demo patient.
 
 Use `v_schedule_availability` to list available schedules in the mobile app.
+
+## Current Backend Notes
+
+Important RPCs:
+
+```txt
+create_queue_ticket
+cancel_my_ticket
+call_next_queue
+update_queue_status
+create_schedule_with_session
+update_schedule_with_session
+delete_schedule_if_empty
+delete_doctor_if_unused
+delete_polyclinic_if_unused
+```
+
+Important views:
+
+```txt
+v_schedule_availability
+v_queue_ticket_details
+v_queue_event_feed
+```
+
+For the latest project status, see `../docs/prd_status_roadmap.md` and `../docs/current_project_snapshot.md`.

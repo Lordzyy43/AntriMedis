@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/notification_service.dart';
 import '../data/models/queue_ticket_detail.dart';
+import '../data/models/queue_ticket_timeline_item.dart';
 import '../data/models/schedule_availability.dart';
 import '../data/queue_repository.dart';
 
@@ -50,9 +51,16 @@ class QueueProvider extends ChangeNotifier {
   }
 
   Future<bool> createTicket(ScheduleAvailability schedule) async {
+    final queueSessionId = schedule.queueSessionId;
+    if (!schedule.canTakeQueue || queueSessionId == null) {
+      _error = schedule.availabilityReason;
+      notifyListeners();
+      return false;
+    }
+
     _setLoading(true);
     try {
-      _activeTicket = await _repository.createTicket(schedule.queueSessionId);
+      _activeTicket = await _repository.createTicket(queueSessionId);
       _tickets = await _repository.fetchMyTickets();
       _lastTicketStatus = _activeTicket?.status;
       _subscribeActiveTicket();
@@ -139,6 +147,14 @@ class QueueProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<QueueTicketTimelineItem>> fetchTicketTimeline(String ticketId) {
+    return _repository.fetchTicketTimeline(ticketId);
+  }
+
+  Future<QueueTicketDetail> fetchTicketDetail(String ticketId) {
+    return _repository.fetchTicketDetail(ticketId);
+  }
+
   Future<void> _maybeNotify(
     QueueTicketDetail ticket,
     String? previousStatus,
@@ -200,6 +216,21 @@ class QueueProvider extends ChangeNotifier {
     }
     if (lower.contains('session is closed')) {
       return 'Sesi antrean sudah ditutup oleh klinik.';
+    }
+    if (lower.contains('schedule date has passed') ||
+        lower.contains('during schedule time')) {
+      return 'Jam praktik sudah selesai. Antrean hanya bisa diambil saat jadwal berlangsung.';
+    }
+    if (lower.contains('service date')) {
+      return 'Antrean hanya bisa diambil pada tanggal layanan.';
+    }
+    if (lower.contains('has not started')) {
+      return 'Jadwal praktik belum mulai. Silakan kembali sesuai jam layanan.';
+    }
+    if (lower.contains('branch is not active') ||
+        lower.contains('polyclinic is not active') ||
+        lower.contains('doctor is not active')) {
+      return 'Layanan ini sedang tidak aktif. Silakan pilih jadwal lain.';
     }
     if (lower.contains('only waiting queue can be cancelled')) {
       return 'Antrean sudah diproses petugas sehingga tidak bisa dibatalkan dari aplikasi.';

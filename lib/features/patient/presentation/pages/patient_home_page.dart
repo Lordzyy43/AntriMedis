@@ -155,8 +155,10 @@ class _PatientHomePageState extends State<PatientHomePage> {
                       isDisabled:
                           hasActiveTicket ||
                           queue.isLoading ||
-                          needsProfileCompletion,
+                          needsProfileCompletion ||
+                          !schedule.canTakeQueue,
                       disabledLabel: _scheduleButtonLabel(
+                        schedule: schedule,
                         hasActiveTicket: hasActiveTicket,
                         isLoading: queue.isLoading,
                         needsProfileCompletion: needsProfileCompletion,
@@ -194,6 +196,12 @@ class _PatientHomePageState extends State<PatientHomePage> {
           ),
         ),
       );
+      return;
+    }
+    if (!schedule.canTakeQueue) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(schedule.availabilityReason)));
       return;
     }
 
@@ -275,6 +283,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
   }
 
   String _scheduleButtonLabel({
+    required ScheduleAvailability schedule,
     required bool hasActiveTicket,
     required bool isLoading,
     required bool needsProfileCompletion,
@@ -282,6 +291,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
     if (isLoading) return 'Memuat';
     if (hasActiveTicket) return 'Sudah Aktif';
     if (needsProfileCompletion) return 'Lengkapi';
+    if (!schedule.canTakeQueue) return schedule.availabilityReason;
     return 'Ambil Nomor';
   }
 }

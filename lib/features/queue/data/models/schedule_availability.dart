@@ -17,6 +17,8 @@ class ScheduleAvailability {
     required this.lastNumber,
     required this.totalTaken,
     required this.remainingQuota,
+    required this.isTakeable,
+    required this.availabilityReason,
   });
 
   final String scheduleId;
@@ -31,11 +33,15 @@ class ScheduleAvailability {
   final int quotaLimit;
   final int averageServiceMinutes;
   final String status;
-  final String queueSessionId;
+  final String? queueSessionId;
   final int currentNumber;
   final int lastNumber;
   final int totalTaken;
   final int remainingQuota;
+  final bool isTakeable;
+  final String availabilityReason;
+
+  bool get canTakeQueue => isTakeable && queueSessionId != null;
 
   factory ScheduleAvailability.fromJson(Map<String, dynamic> json) {
     return ScheduleAvailability(
@@ -51,11 +57,14 @@ class ScheduleAvailability {
       quotaLimit: json['quota_limit'] as int,
       averageServiceMinutes: json['average_service_minutes'] as int,
       status: json['status'] as String,
-      queueSessionId: json['queue_session_id'] as String,
+      queueSessionId: json['queue_session_id'] as String?,
       currentNumber: json['current_number'] as int,
       lastNumber: json['last_number'] as int,
       totalTaken: json['total_taken'] as int,
       remainingQuota: json['remaining_quota'] as int,
+      isTakeable: json['is_takeable'] as bool? ?? true,
+      availabilityReason:
+          json['availability_reason'] as String? ?? 'Siap diambil',
     );
   }
 }

@@ -79,6 +79,7 @@ Untuk AntriMedis saat ini, yang paling penting adalah:
 
 - `docs/prd.md`
 - `docs/prd_status_roadmap.md`
+- `docs/current_project_snapshot.md`
 - `docs/documentation_strategy.md`
 - nanti tambahkan `docs/qa_checklist.md`
 - nanti tambahkan `docs/release_checklist.md`
@@ -91,6 +92,7 @@ Untuk AntriMedis saat ini, yang paling penting adalah:
 docs/
   prd.md
   prd_status_roadmap.md
+  current_project_snapshot.md
   documentation_strategy.md
   qa_checklist.md
   release_checklist.md
@@ -144,6 +146,7 @@ Untuk AntriMedis:
 
 - `docs/prd.md` tetap menjadi dokumen produk utama.
 - `docs/prd_status_roadmap.md` menjadi dokumen kondisi project dan next step.
+- `docs/current_project_snapshot.md` menjadi ringkasan cepat kondisi project saat ini.
 - Dokumen baru dibuat hanya jika punya fungsi berbeda, seperti QA checklist atau release checklist.
 
 Pola ini paling mendekati praktik production karena memisahkan requirement, implementation status, technical decision, dan release process.

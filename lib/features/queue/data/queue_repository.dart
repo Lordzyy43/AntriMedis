@@ -2,6 +2,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/queue_ticket_detail.dart';
+import 'models/queue_ticket_timeline_item.dart';
 import 'models/schedule_availability.dart';
 
 class QueueRepository {
@@ -16,7 +17,6 @@ class QueueRepository {
         .select()
         .eq('status', 'open')
         .eq('schedule_date', today)
-        .gt('remaining_quota', 0)
         .order('start_time', ascending: true);
 
     return data
@@ -73,6 +73,22 @@ class QueueRepository {
         .single();
 
     return QueueTicketDetail.fromJson(data);
+  }
+
+  Future<List<QueueTicketTimelineItem>> fetchTicketTimeline(
+    String ticketId,
+  ) async {
+    final data = await _client
+        .from('v_queue_ticket_timeline')
+        .select()
+        .eq('queue_ticket_id', ticketId)
+        .order('created_at', ascending: true);
+
+    return data
+        .map<QueueTicketTimelineItem>(
+          (row) => QueueTicketTimelineItem.fromJson(row),
+        )
+        .toList();
   }
 
   Future<QueueTicketDetail> cancelTicket(String ticketId) async {

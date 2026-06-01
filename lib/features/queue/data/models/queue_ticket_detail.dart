@@ -5,11 +5,16 @@ class QueueTicketDetail {
     required this.queueNumber,
     required this.queueCode,
     required this.status,
+    required this.statusReason,
+    required this.cancelReason,
     required this.estimatedWaitMinutes,
     required this.createdAt,
     required this.calledAt,
     required this.servingStartedAt,
     required this.completedAt,
+    required this.skippedAt,
+    required this.cancelledAt,
+    required this.expiredAt,
     required this.currentNumber,
     required this.lastNumber,
     required this.scheduleDate,
@@ -27,11 +32,16 @@ class QueueTicketDetail {
   final int queueNumber;
   final String queueCode;
   final String status;
+  final String? statusReason;
+  final String? cancelReason;
   final int estimatedWaitMinutes;
   final DateTime createdAt;
   final DateTime? calledAt;
   final DateTime? servingStartedAt;
   final DateTime? completedAt;
+  final DateTime? skippedAt;
+  final DateTime? cancelledAt;
+  final DateTime? expiredAt;
   final int currentNumber;
   final int lastNumber;
   final DateTime scheduleDate;
@@ -62,11 +72,16 @@ class QueueTicketDetail {
       queueNumber: json['queue_number'] as int,
       queueCode: json['queue_code'] as String,
       status: json['status'] as String,
+      statusReason: json['status_reason'] as String?,
+      cancelReason: json['cancel_reason'] as String?,
       estimatedWaitMinutes: json['estimated_wait_minutes'] as int,
       createdAt: DateTime.parse(json['created_at'] as String),
       calledAt: _parseNullableDate(json['called_at']),
       servingStartedAt: _parseNullableDate(json['serving_started_at']),
       completedAt: _parseNullableDate(json['completed_at']),
+      skippedAt: _parseNullableDate(json['skipped_at']),
+      cancelledAt: _parseNullableDate(json['cancelled_at']),
+      expiredAt: _parseNullableDate(json['expired_at']),
       currentNumber: json['current_number'] as int,
       lastNumber: json['last_number'] as int,
       scheduleDate: DateTime.parse(json['schedule_date'] as String),
