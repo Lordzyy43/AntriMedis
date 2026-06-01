@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/config/app_spacing.dart';
 import '../../../../core/widgets/app_error_banner.dart';
 import '../../../../core/widgets/empty_state.dart';
+import '../../../queue/data/models/queue_ticket_detail.dart';
 import '../../../queue/providers/queue_provider.dart';
 import 'queue_tracking_page.dart';
 import '../widgets/queue_ticket_card.dart';
@@ -56,7 +57,7 @@ class PatientQueuesPage extends StatelessWidget {
             else
               QueueTicketCard(
                 ticket: activeTicket,
-                onTap: () => _openTracking(context),
+                onTap: () => _openTracking(context, activeTicket),
                 onCancel: () => _confirmCancel(context),
               ),
             const SizedBox(height: AppSpacing.xl),
@@ -78,7 +79,10 @@ class PatientQueuesPage extends StatelessWidget {
               ...historyTickets.map(
                 (ticket) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: QueueTicketCard(ticket: ticket),
+                  child: QueueTicketCard(
+                    ticket: ticket,
+                    onTap: () => _openTracking(context, ticket),
+                  ),
                 ),
               ),
           ],
@@ -87,10 +91,10 @@ class PatientQueuesPage extends StatelessWidget {
     );
   }
 
-  void _openTracking(BuildContext context) {
+  void _openTracking(BuildContext context, QueueTicketDetail ticket) {
     Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const QueueTrackingPage()));
+    ).push(MaterialPageRoute(builder: (_) => QueueTrackingPage(ticket: ticket)));
   }
 
   Future<void> _confirmCancel(BuildContext context) async {
@@ -98,9 +102,9 @@ class PatientQueuesPage extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Batalkan antrean?'),
+          title: const Text('Batalkan antrean saya?'),
           content: const Text(
-            'Nomor antrean yang dibatalkan tidak bisa digunakan kembali.',
+            'Aksi ini hanya membatalkan antrean dari sisi pasien saat status masih menunggu. Nomor antrean yang dibatalkan tidak bisa digunakan kembali.',
           ),
           actions: [
             TextButton(
@@ -109,7 +113,7 @@ class PatientQueuesPage extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Batalkan'),
+              child: const Text('Batalkan Antrean Saya'),
             ),
           ],
         );

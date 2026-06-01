@@ -20,8 +20,8 @@
 | Target Pengguna   | Pasien dan Admin Klinik untuk MVP                             |
 | Target Proyek     | UAS Mobile + Portfolio Full-Stack                             |
 | Tingkat Kesulitan | Hard                                                          |
-| Versi Dokumen     | v1.1                                                          |
-| Status            | Scope MVP dikunci untuk satu klinik, implementation hardening |
+| Versi Dokumen     | v1.2                                                          |
+| Status            | Scope MVP satu klinik, UAS-ready beta / production-like MVP   |
 
 ---
 
@@ -146,12 +146,11 @@ Package rekomendasi Flutter:
 ```yaml
 supabase_flutter: latest
 provider: latest
-flutter_screenutil: latest
+flutter_dotenv: latest
 intl: latest
-uuid: latest
 flutter_local_notifications: latest
 percent_indicator: latest
-cached_network_image: latest
+image_picker: latest
 ```
 
 ### 6.2 Web Admin Panel
@@ -182,7 +181,8 @@ Database       : PostgreSQL
 Realtime       : Supabase Realtime
 Security       : Row Level Security Policies
 Business Logic : PostgreSQL Functions / RPC
-Optional Later : Supabase Storage, Edge Functions
+Storage        : Supabase Storage untuk avatar profil
+Optional Later : Supabase Edge Functions untuk push notification produksi
 ```
 
 ---
@@ -272,8 +272,8 @@ Fitur yang tidak dikerjakan pada tahap awal:
 8. Dashboard owner penuh.
 9. Panel dokter terpisah.
 10. Super admin multi-klinik.
-11. Supabase Storage untuk upload avatar/logo.
-12. Supabase Edge Functions untuk push notification produksi.
+11. Supabase Edge Functions untuk push notification produksi.
+12. FCM push notification saat aplikasi mati total.
 
 ---
 
@@ -578,7 +578,7 @@ Data yang tampil:
 
 Fitur:
 
-- Filter antrean berdasarkan tanggal.
+- Antrean operasional hari ini.
 - Filter berdasarkan cabang.
 - Filter berdasarkan poli.
 - Filter berdasarkan dokter.
@@ -588,6 +588,12 @@ Fitur:
 - Tandai selesai.
 - Lewati antrean.
 - Batalkan antrean.
+
+Catatan implementasi saat ini:
+
+- Halaman antrean tidak dipakai untuk booking/future date.
+- Jadwal besok/lusa tetap dibuat dari halaman Jadwal.
+- Queue management hanya menampilkan jadwal `open` untuk tanggal hari ini agar admin fokus pada pelayanan yang sedang berjalan.
 
 Status antrean:
 
@@ -674,7 +680,7 @@ Data yang tampil:
 
 ### 12.3 Aturan Antrean Aktif
 
-Pasien hanya boleh memiliki satu antrean aktif pada jadwal yang sama.
+Pasien hanya boleh memiliki satu antrean aktif pada hari yang sama di cabang yang sama. Untuk scope satu klinik, aturan ini lebih aman daripada mengizinkan pasien mengambil banyak nomor pada beberapa jadwal sekaligus.
 
 Status aktif:
 
@@ -1830,55 +1836,48 @@ lib/
 ```txt
 src/
 +-- app/
+|   +-- navigation.tsx
 |   +-- providers.tsx
-|   `-- router.tsx
+|   `-- routes.tsx
 +-- config/
 |   `-- env.ts
 +-- lib/
+|   +-- friendly-error.ts
+|   +-- pagination.ts
 |   +-- supabase.ts
-|   +-- utils.ts
-|   `-- date.ts
+|   `-- utils.ts
 +-- types/
-|   +-- auth.ts
-|   +-- clinic.ts
-|   +-- schedule.ts
 |   `-- queue.ts
 +-- features/
 |   +-- auth/
-|   |   +-- pages/LoginPage.tsx
-|   |   +-- services/authService.ts
-|   |   `-- hooks/useAuth.ts
+|   |   +-- pages/login-page.tsx
+|   |   +-- routes/protected-route.tsx
+|   |   `-- services/auth-service.ts
 |   +-- dashboard/
-|   |   +-- pages/AdminDashboardPage.tsx
-|   |   `-- components/StatsCard.tsx
+|   |   +-- pages/dashboard-page.tsx
+|   |   `-- services/dashboard-service.ts
 |   +-- queues/
-|   |   +-- pages/QueueManagementPage.tsx
-|   |   +-- components/QueueTable.tsx
-|   |   +-- components/QueueActionButtons.tsx
-|   |   +-- services/queueService.ts
-|   |   `-- hooks/useQueues.ts
-|   +-- clinics/
-|   |   +-- pages/BranchManagementPage.tsx
-|   |   `-- services/clinicService.ts
+|   |   +-- pages/queue-management-page.tsx
+|   |   `-- services/queue-service.ts
 |   +-- polyclinics/
-|   |   +-- pages/PolyclinicManagementPage.tsx
-|   |   `-- services/polyclinicService.ts
+|   |   +-- pages/polyclinic-management-page.tsx
+|   |   `-- services/polyclinic-service.ts
 |   +-- doctors/
-|   |   +-- pages/DoctorManagementPage.tsx
-|   |   `-- services/doctorService.ts
+|   |   +-- pages/doctor-management-page.tsx
+|   |   `-- services/doctor-service.ts
 |   `-- schedules/
-|       +-- pages/ScheduleManagementPage.tsx
-|       `-- services/scheduleService.ts
+|       +-- pages/schedule-management-page.tsx
+|       `-- services/schedule-service.ts
 +-- components/
 |   +-- layout/
-|   |   +-- AdminLayout.tsx
-|   |   +-- Sidebar.tsx
-|   |   `-- Header.tsx
+|   |   `-- admin-layout.tsx
 |   `-- ui/
-|       +-- Button.tsx
-|       +-- Input.tsx
-|       +-- Modal.tsx
-|       `-- Badge.tsx
+|       +-- button.tsx
+|       +-- confirm-dialog.tsx
+|       +-- form-drawer.tsx
+|       +-- pagination.tsx
+|       +-- table-state.tsx
+|       `-- toast-provider.tsx
 `-- main.tsx
 ```
 
@@ -1969,10 +1968,10 @@ QueueManagementPage
 ScheduleManagementPage
 DoctorManagementPage
 PolyclinicManagementPage
-BranchManagementPage
-OwnerReportPage
 SettingsPage
 ```
+
+Catatan: `BranchManagementPage` dan `OwnerReportPage` tetap future scope. Scope admin saat ini sengaja difokuskan ke dashboard, antrean, jadwal, dokter, dan poli.
 
 ### 23.3 Komponen Penting
 
@@ -2148,7 +2147,7 @@ Rata-rata layanan 8 menit
 | RLS terlalu longgar                             | Data pasien bisa terbaca user lain | Buat policy ketat berdasarkan role dan owner data      |
 | Realtime tidak aktif                            | UI tidak update otomatis           | Enable realtime pada tabel penting di Supabase         |
 | Notifikasi local tidak muncul                   | UX kurang kuat                     | Test permission notification sejak awal                |
-| Admin web belum selesai                         | Demo kurang lengkap                | Buat minimal queue management page terlebih dahulu     |
+| Package name belum final                       | Belum siap internal test/upload    | Tunggu format dari dosen sebelum release identity      |
 | Scope terlalu besar                             | UAS tidak selesai                  | Fokus MVP: auth, jadwal, antrean, realtime, admin call |
 
 ---

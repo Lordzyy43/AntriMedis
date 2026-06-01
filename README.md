@@ -1,17 +1,95 @@
-# apps
+# AntriMedis Mobile App
 
-A new Flutter project.
+Mobile app pasien untuk sistem antrean klinik AntriMedis. Aplikasi ini berfokus pada alur pasien: autentikasi, pelengkapan profil, melihat jadwal praktik, mengambil nomor antrean, tracking realtime, estimasi waktu tunggu, notifikasi lokal, riwayat antrean, dan profil/avatar.
 
-## Getting Started
+## Status
 
-This project is a starting point for a Flutter application.
+Status per 1 Juni 2026:
 
-A few resources to get you started if this is your first Flutter project:
+- Scope aktif: satu klinik/cabang utama.
+- Role mobile: pasien.
+- Backend: Supabase Auth, PostgreSQL, RLS, RPC, Realtime, dan Storage avatar.
+- Flow utama sudah berjalan end-to-end dengan web admin.
+- QA dan release packaging final masih ditunda sampai package name dari dosen tersedia.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Dokumen status lengkap ada di [docs/prd_status_roadmap.md](docs/prd_status_roadmap.md).
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Fitur Utama
+
+- Login/register email dan password.
+- Login Google OAuth dengan deep link `antrimedis://login-callback/`.
+- Profile completion sebelum pasien mengambil antrean.
+- Upload, sinkronisasi, dan hapus avatar profil.
+- Daftar jadwal praktik dari `v_schedule_availability`.
+- Ambil nomor antrean lewat RPC `create_queue_ticket`.
+- Tracking status antrean realtime.
+- Estimasi waktu tunggu berbasis jumlah antrean sebelum pasien dan rata-rata durasi layanan.
+- Local notification untuk antrean dibuat, hampir dipanggil, dipanggil, dilewati, atau dibatalkan.
+- Riwayat antrean pasien.
+- Floating navigation custom.
+
+## Tech Stack
+
+- Flutter
+- Provider
+- Supabase Flutter
+- flutter_dotenv
+- flutter_local_notifications
+- percent_indicator
+- image_picker
+- intl
+
+## Setup
+
+1. Copy env example:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+2. Isi `.env`:
+
+```txt
+SUPABASE_URL=https://vicwdxxjaoekppembbvt.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_OAUTH_REDIRECT_URL=antrimedis://login-callback/
+```
+
+3. Install dependency:
+
+```powershell
+flutter pub get
+```
+
+4. Jalankan app:
+
+```powershell
+flutter run
+```
+
+## Validasi
+
+Command yang dipakai untuk guardrail development:
+
+```powershell
+flutter analyze
+flutter test
+```
+
+Terakhir dicek: keduanya pass.
+
+## Catatan Operasional
+
+- Password user tidak disimpan di tabel public. Supabase menyimpannya secara aman di schema `auth`.
+- Tabel `profiles` hanya menyimpan data profil pasien seperti nama, nomor telepon, tanggal lahir, gender, dan avatar.
+- Pasien hanya boleh memiliki satu antrean aktif per hari pada cabang utama.
+- Realtime pada app berarti UI berubah ketika admin memanggil/melayani/menyelesaikan antrean selama app aktif atau masih bisa menerima event.
+- Notifikasi production penuh saat app mati total membutuhkan FCM dan Edge Function. Ini masih future scope.
+
+## Dokumen Terkait
+
+- [PRD](docs/prd.md)
+- [Status & Roadmap](docs/prd_status_roadmap.md)
+- [Current Project Snapshot](docs/current_project_snapshot.md)
+- [User Side DB Fields](docs/user_side_db_fields.md)
+- [Documentation Strategy](docs/documentation_strategy.md)

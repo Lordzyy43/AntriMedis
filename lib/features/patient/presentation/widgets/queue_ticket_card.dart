@@ -78,6 +78,13 @@ class QueueTicketCard extends StatelessWidget {
                 color: status.color,
                 backgroundColor: status.backgroundColor,
               ),
+              if (onTap != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textMuted,
+                ),
+              ],
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -129,10 +136,48 @@ class QueueTicketCard extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: onCancel,
                     icon: const Icon(Icons.cancel_outlined),
-                    label: const Text('Batalkan'),
+                    label: const Text('Batalkan Saya'),
                   ),
               ],
             ),
+          ] else if (ticket.statusReason?.trim().isNotEmpty ?? false) ...[
+            const SizedBox(height: AppSpacing.md),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: status.backgroundColor,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(status.icon, color: status.color, size: 18),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      ticket.statusReason!,
+                      style: TextStyle(
+                        color: status.color,
+                        fontWeight: FontWeight.w800,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (onTap != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              const Text(
+                'Ketuk untuk melihat detail dan timeline.',
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ],
         ],
       ),

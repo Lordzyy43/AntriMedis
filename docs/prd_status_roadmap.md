@@ -1,24 +1,24 @@
 # PRD Status & Roadmap - AntriMedis
 
-**Tanggal update:** 30 Mei 2026  
+**Tanggal update:** 1 Juni 2026  
 **Dokumen acuan:** `docs/prd.md`  
-**Status project:** MVP advanced, core flow sudah hidup, sedang masuk production hardening  
+**Status project:** UAS-ready beta / production-like MVP  
 **Scope aktif:** Satu klinik, satu cabang utama, dua role utama: pasien dan admin klinik
 
 ---
 
 ## 1. Executive Summary
 
-AntriMedis saat ini sudah bukan sekadar prototype UI. Project sudah memiliki mobile app pasien, web admin panel, Supabase Auth, PostgreSQL schema, RLS, RPC, realtime subscription, storage avatar, local notification, dan business logic antrean yang mulai dikunci di database.
+AntriMedis saat ini sudah melewati tahap prototype UI. Project sudah memiliki mobile app pasien, web admin panel, Supabase Auth, PostgreSQL schema, RLS, RPC, realtime subscription, Storage avatar, local notification, safe CRUD master data, dan business logic antrean yang dijaga dari sisi database.
 
-Keputusan produk paling aman saat ini adalah tetap fokus sebagai **sistem antrean digital untuk satu klinik terlebih dahulu**, bukan marketplace multi-klinik. Struktur database memang sudah mendukung `clinics` dan `clinic_branches`, tetapi UI multi-klinik, owner dashboard, role dokter penuh, dan fitur klinik lain sebaiknya tetap menjadi future scope.
+Keputusan produk saat ini tetap sehat: **fokus sebagai sistem antrean digital untuk satu klinik terlebih dahulu**. Struktur database memang sudah siap dikembangkan ke multi-klinik/multi-cabang, tetapi UI global picker, owner analytics, role dokter penuh, FCM production push, dan fitur klinik lain tetap future scope.
 
-Fokus sekarang bukan menambah fitur besar, tetapi memastikan flow utama stabil:
+Flow utama yang harus terus dijaga:
 
 ```txt
 Pasien login
 -> lengkapi profil
--> lihat jadwal
+-> lihat jadwal hari ini
 -> ambil nomor antrean
 -> admin memanggil antrean
 -> mobile berubah realtime
@@ -40,7 +40,9 @@ Pasien login
 | Role future | Dokter, owner, super admin |
 | Auth pasien | Email/password dan Google OAuth |
 | Auth admin | Email/password dengan role/staff dari database |
-| Notifikasi MVP | Local notification saat app aktif/background ringan |
+| Jadwal | Bisa dibuat untuk hari ini/besok/dst dari admin |
+| Antrean | Pelayanan hari-H, bukan booking future |
+| Notifikasi MVP | Local notification dipicu realtime saat app aktif/background ringan |
 | Notifikasi production penuh | FCM + Edge Function, future scope |
 | Scope klinik | Satu klinik/cabang utama untuk UAS |
 
@@ -50,15 +52,15 @@ Pasien login
 
 | Area | Estimasi capaian | Interpretasi |
 | --- | ---: | --- |
-| User-side mobile PRD | 88% | Core pasien sudah berjalan. Tinggal QA, polish, dan edge case. |
-| Web admin PRD | 88% | Dashboard, master data, jadwal, antrean, dan detail operasional sudah kuat. |
-| Supabase backend | 90% | Schema, RLS, RPC, realtime, storage, dan event feed sudah matang untuk MVP. |
-| UX profesional | 82% | Sudah jauh lebih proper. Masih perlu QA visual/manual dan konsistensi kecil. |
-| Demo UAS readiness | 88% | Layak demo setelah E2E checklist dijalankan ulang. |
-| Production readiness belajar | 72% | Fondasi production mulai kuat, tetapi belum full production karena FCM, deployment, test coverage, package name, dan monitoring belum final. |
-| Scope expansion readiness | 65% | Jangan melebar dulu sebelum E2E, docs, dan final QA stabil. |
+| User-side mobile PRD | 90% | Core pasien sudah berjalan. Tinggal QA manual final, polish minor, dan edge case. |
+| Web admin PRD | 92% | Dashboard, antrean, jadwal, dokter, poli, pagination, modal, dan safe CRUD sudah kuat. |
+| Supabase backend | 92% | Schema, RLS, RPC, realtime, storage, state machine, dan read model sudah matang untuk MVP. |
+| UX profesional | 86% | Sudah proper untuk demo dan portfolio. Masih bisa dipoles setelah QA visual final. |
+| Demo UAS readiness | 90% | Layak demo setelah checklist E2E dijalankan ulang dengan data fresh. |
+| Production readiness belajar | 76% | Fondasi production sudah terasa, tetapi belum full production karena FCM, deployment, monitoring, automated test, dan package identity final belum selesai. |
+| Scope expansion readiness | 70% | Sudah mulai siap, tetapi sebaiknya scope baru dibuka setelah QA dan release identity aman. |
 
-Kesimpulan: AntriMedis sudah berada di level **MVP advanced / portfolio-grade early product**. Untuk disebut production-grade penuh, masih perlu deployment discipline, automated tests, push notification backend, monitoring, dan release checklist.
+Kesimpulan: AntriMedis berada di level **production-like MVP**. Untuk ukuran UAS, capaiannya sudah kuat. Untuk disebut production-grade penuh, masih perlu disiplin release, monitoring, automated tests, push notification backend, dan audit security final.
 
 ---
 
@@ -71,12 +73,12 @@ Kesimpulan: AntriMedis sudah berada di level **MVP advanced / portfolio-grade ea
 | Register/login email | Supabase Auth email/password | Selesai | Password disimpan di schema `auth`, bukan table public. |
 | Login Google | Google OAuth + deep link | Selesai | Menggunakan redirect `antrimedis://login-callback/`. |
 | Profile completion | Gate profil sebelum ambil antrean | Selesai | Membantu memastikan data pasien tidak kosong. |
-| Avatar profil | Upload, sync avatar Google, remove avatar | Selesai | Perlu cleanup storage lama sebagai hardening berikutnya. |
+| Avatar profil | Upload, sync avatar Google, remove avatar | Selesai | Menggunakan Storage dan `image_picker`. |
 | Melihat jadwal | Home membaca `v_schedule_availability` | Selesai | Menampilkan poli, dokter, kuota, dan jam praktik. |
-| Ambil nomor antrean | RPC `create_queue_ticket` | Selesai, hardened | Sekarang dibatasi satu antrean aktif per hari per cabang. |
+| Ambil nomor antrean | RPC `create_queue_ticket` | Selesai, hardened | Dibatasi satu antrean aktif per hari per cabang. |
 | Konfirmasi ambil nomor | Dialog konfirmasi sebelum create ticket | Selesai | Mengurangi accidental tap. |
 | Tracking realtime | Subscribe ke ticket/session | Selesai | Update dari admin mengubah mobile. |
-| Estimasi tunggu | `estimated_wait_minutes` + wording perkiraan | Selesai | Copy sudah tidak mengklaim presisi mutlak. |
+| Estimasi tunggu | `estimated_wait_minutes` + wording perkiraan | Selesai | Estimasi adalah perkiraan operasional, bukan presisi mutlak. |
 | Cancel antrean | RPC `cancel_my_ticket` | Selesai, hardened | Hanya bisa cancel saat status `waiting`. |
 | Notifikasi lokal | Near/called/skipped/cancelled | MVP selesai | Full production butuh FCM. |
 | Riwayat antrean | Tiket aktif dan history | Selesai | Perlu QA dengan banyak status. |
@@ -88,16 +90,17 @@ Kesimpulan: AntriMedis sudah berada di level **MVP advanced / portfolio-grade ea
 | Requirement | Kondisi saat ini | Status | Catatan |
 | --- | --- | --- | --- |
 | Login admin | Supabase Auth + protected route | Selesai | Membutuhkan role/staff di DB. |
-| Dashboard | Operational overview | Selesai | Sudah ada stats, activity, readiness, jadwal. |
-| Activity feed | Dari `queue_events` via `v_queue_event_feed` | Selesai, hardened | Lebih valid daripada mengambil tiket terbaru saja. |
-| Queue management | Panggil, layani, selesai, skip, cancel | Selesai, hardened | Mengikuti state machine DB. |
-| Detail antrean | Drawer detail pasien dan posisi antrean | Selesai | Operator bisa inspect sebelum aksi. |
+| Dashboard | Operational overview | Selesai | Ada stats, activity feed, readiness banner, dan jadwal. |
+| Activity feed | Dari `queue_events` via `v_queue_event_feed` | Selesai, hardened | Lebih valid daripada menyimpulkan dari tiket terbaru. |
+| Queue management | Panggil, layani, selesai, skip, cancel | Selesai, hardened | Hari-H only dan mengikuti state machine DB. |
+| Detail antrean | Detail pasien dan posisi antrean | Selesai | Operator bisa inspect sebelum aksi. |
 | Jadwal | Create/update via RPC transaction | Selesai, hardened | Schedule dan queue session atomic. |
-| Detail jadwal | Drawer detail operasional | Selesai | Menampilkan kapasitas, status, session. |
-| Master data dokter | Halaman terpisah | Selesai | Lebih rapi dari tab gabungan. |
-| Master data poli | Halaman terpisah | Selesai | Lebih friendly untuk admin. |
-| Toast/feedback | Toast success/error di aksi penting | Selesai | Perlu QA copy minor. |
-| Loading/empty state | Skeleton dan table empty state | Sebagian besar selesai | Perlu audit visual final. |
+| Duplikasi jadwal | Per baris dan massal ke tanggal target | Selesai | `full` menjadi `open`, `cancelled` tidak diduplikasi. |
+| Detail jadwal | Detail operasional | Selesai | Menampilkan kapasitas, status, session, dan konteks. |
+| Dokter | Halaman terpisah dengan CRUD, pagination, safe delete | Selesai | Data terpakai akan diarsipkan, bukan merusak history. |
+| Poli | Halaman terpisah dengan CRUD, pagination, safe delete | Selesai | Prefix antrean dikelola dari admin. |
+| Form admin | Modal terpusat | Selesai | Lebih profesional daripada form inline/sidebar panjang. |
+| Loading/empty state | Skeleton/table empty state | Selesai | Tetap perlu QA visual final. |
 
 ### 4.3 Supabase Backend
 
@@ -111,9 +114,10 @@ Kesimpulan: AntriMedis sudah berada di level **MVP advanced / portfolio-grade ea
 | RPC cancel pasien | `cancel_my_ticket` | Selesai | Pasien tidak direct update table lagi. |
 | Trigger state machine | `queue_tickets_validate_status_transition` | Selesai | DB menolak transisi status ilegal. |
 | RPC jadwal | `create_schedule_with_session`, `update_schedule_with_session` | Selesai | Jadwal dan session atomic. |
+| RPC safe delete | `delete_doctor_if_unused`, `delete_polyclinic_if_unused`, `delete_schedule_if_empty` | Selesai | Menjaga history tetap valid. |
 | Read model | `v_schedule_availability`, `v_queue_ticket_details`, `v_queue_event_feed` | Selesai | Frontend tidak perlu join manual kompleks. |
 | Realtime | `queue_tickets`, `queue_sessions`, `notifications` | Selesai | Cukup untuk demo realtime. |
-| Storage avatar | Bucket/policy avatar | Selesai | Cleanup file lama belum final. |
+| Storage avatar | Bucket/policy avatar | Selesai | Cleanup file lama masih bisa di-hardening. |
 
 ---
 
@@ -121,7 +125,7 @@ Kesimpulan: AntriMedis sudah berada di level **MVP advanced / portfolio-grade ea
 
 ### 5.1 Queue State Machine
 
-Database sekarang membatasi transisi status antrean:
+Database membatasi transisi status antrean:
 
 ```txt
 waiting -> called / skipped / cancelled / expired
@@ -129,11 +133,11 @@ called  -> serving / skipped / cancelled / expired
 serving -> completed / skipped / cancelled / expired
 ```
 
-Status final tidak bisa dikembalikan ke status aktif. Ini penting karena UI tidak boleh menjadi satu-satunya penjaga logic. Production pattern yang benar adalah: **frontend membantu UX, database tetap menjaga aturan final.**
+Status final tidak bisa dikembalikan ke status aktif. Frontend membantu UX, tetapi database tetap menjadi penjaga aturan final.
 
 ### 5.2 Call Next Guard
 
-Admin tidak bisa memanggil nomor berikutnya jika masih ada tiket `called` atau `serving`. Ini mencegah kondisi operasional aneh seperti dua pasien sama-sama sedang dipanggil pada sesi yang sama.
+Admin tidak bisa memanggil nomor berikutnya jika masih ada tiket `called` atau `serving` pada sesi yang sama. Ini menjaga operasional agar tidak ada dua pasien aktif bersamaan tanpa diselesaikan.
 
 ### 5.3 Active Queue Policy
 
@@ -141,26 +145,24 @@ Pasien dibatasi agar tidak memiliki lebih dari satu antrean aktif pada hari yang
 
 ### 5.4 Patient Cancel RPC
 
-Mobile tidak lagi melakukan direct update ke `queue_tickets`. Cancel dilakukan lewat RPC `cancel_my_ticket`, sehingga DB bisa memastikan:
-
-- user adalah pemilik ticket,
-- status masih `waiting`,
-- event tercatat,
-- notification tercatat,
-- estimasi di-refresh.
+Mobile membatalkan antrean lewat RPC `cancel_my_ticket`, sehingga DB bisa memastikan user adalah pemilik tiket, status masih `waiting`, event tercatat, notification tercatat, dan estimasi di-refresh.
 
 ### 5.5 Schedule Transaction RPC
 
-Admin tidak lagi membuat jadwal dan queue session dengan dua query terpisah. Sekarang memakai:
+Admin membuat dan mengubah jadwal lewat:
 
 - `create_schedule_with_session`
 - `update_schedule_with_session`
 
-Jika session gagal, schedule ikut rollback. Ini pattern production yang lebih aman.
+Jika session gagal, schedule ikut rollback.
 
 ### 5.6 Event Feed
 
-Dashboard admin sekarang membaca aktivitas dari `queue_events` melalui `v_queue_event_feed`. Ini lebih benar daripada menyimpulkan aktivitas dari row tiket terbaru.
+Dashboard admin membaca aktivitas dari `queue_events` melalui `v_queue_event_feed`, sehingga histori operasional lebih benar daripada sekadar mengambil tiket terbaru.
+
+### 5.7 Safe Delete Master Data
+
+Dokter dan poli yang belum pernah dipakai bisa dihapus. Dokter dan poli yang sudah dipakai jadwal/history akan diarsipkan (`is_active=false`) agar data lama tetap konsisten.
 
 ---
 
@@ -170,21 +172,20 @@ Dashboard admin sekarang membaca aktivitas dari `queue_events` melalui `v_queue_
 
 | Gap | Dampak | Rekomendasi |
 | --- | --- | --- |
-| E2E QA belum dicatat sebagai checklist final | Flow bisa tampak benar tapi gagal pada urutan tertentu | Jalankan checklist admin-mobile dari awal sampai selesai. |
-| Test coverage masih tipis | Regression bisa tidak ketahuan | Tambahkan unit/widget tests untuk queue calculation, provider, dan error mapping. |
+| E2E QA belum dicatat sebagai checklist final | Flow bisa tampak benar tapi gagal pada urutan tertentu | Jalankan checklist admin-mobile dari awal sampai selesai sebelum demo. |
 | Package name masih `com.example.apps` | Belum siap release/internal test | Ganti setelah dosen memberi package final. |
+| RLS final audit belum terdokumentasi detail | Risiko akses terlalu luas/sempit | Audit policy sebelum final deploy/demo besar. |
 | Avatar cleanup belum final | Storage bisa menumpuk file lama | Hapus avatar lama saat upload/remove atau gunakan path deterministic. |
-| RLS final audit belum terdokumentasi | Risiko akses terlalu luas/sempit | Audit policy sebelum final demo/deploy. |
 
 ### 6.2 Medium Priority
 
 | Gap | Dampak | Rekomendasi |
 | --- | --- | --- |
-| Push notification belum FCM | Notifikasi tidak full production saat app mati | Jadikan future scope jika waktu cukup. |
+| Push notification belum FCM | Notifikasi tidak full production saat app mati total | Jadikan future scope jika waktu cukup. |
+| Automated test coverage masih tipis | Regression bisa tidak ketahuan | Tambahkan unit/widget tests untuk queue provider, error mapping, dan UI state. |
 | Admin staff management belum ada | Admin baru masih perlu setup manual | Untuk UAS cukup seed/manual. Untuk production perlu halaman staff. |
 | Activity/report historis belum advanced | Dashboard masih harian/basic | Tambahkan report setelah core stabil. |
 | Monitoring/logging belum ada | Sulit debug production | Minimal dokumentasikan cara cek Supabase logs. |
-| `.env.example` admin/mobile perlu dipastikan lengkap | Setup project bisa membingungkan | Rapikan env docs sebelum final. |
 
 ### 6.3 Low Priority / Future Scope
 
@@ -199,8 +200,6 @@ Dashboard admin sekarang membaca aktivitas dari `queue_events` melalui `v_queue_
 ---
 
 ## 7. Definition of Done Sebelum Scope Dilebarkan
-
-Scope baru boleh dibuka hanya jika checklist ini sudah aman:
 
 - Mobile pasien login Google dan email/password berhasil.
 - Pasien baru diarahkan ke profile completion.
@@ -233,40 +232,39 @@ Scope baru boleh dibuka hanya jika checklist ini sudah aman:
 
 Prioritas paling dekat adalah membuktikan flow dari database real:
 
-1. Reset/siapkan data jadwal hari ini.
+1. Siapkan jadwal open hari ini.
 2. Login admin.
-3. Buat jadwal open.
-4. Login pasien.
-5. Lengkapi profil.
-6. Ambil nomor.
-7. Cek ticket muncul di admin.
-8. Admin call next.
-9. Cek mobile update realtime.
-10. Admin mulai pelayanan.
-11. Admin selesaikan.
-12. Cek history pasien.
-13. Ulangi untuk skip/cancel.
+3. Login pasien.
+4. Lengkapi profil pasien.
+5. Ambil nomor antrean.
+6. Cek ticket muncul di admin.
+7. Admin call next.
+8. Cek mobile update realtime.
+9. Admin mulai pelayanan.
+10. Admin selesaikan.
+11. Cek history pasien.
+12. Ulangi untuk skip/cancel.
 
-### Phase B - Test Coverage Minimal
-
-Tambahkan automated guardrail:
-
-1. Test model `QueueTicketDetail.remainingBeforeMe`.
-2. Test friendly error mapping queue.
-3. Test provider create/cancel dengan mocked repository.
-4. Test widget empty/error state dasar.
-5. Untuk admin, mulai dari test utility `friendlySupabaseError` jika Vitest ditambahkan.
-
-### Phase C - Release Identity
+### Phase B - Release Identity
 
 Menunggu package name dari dosen:
 
 1. Ganti Android `applicationId`.
 2. Ganti namespace jika diperlukan.
-3. App icon.
-4. Splash screen.
+3. Rapikan app icon.
+4. Rapikan splash screen.
 5. Build APK debug/release sesuai kebutuhan.
-6. README final setup.
+6. Jalankan final QA checklist.
+
+### Phase C - Test Coverage Minimal
+
+Tambahkan automated guardrail setelah flow final:
+
+1. Test model/logic estimasi antrean.
+2. Test friendly error mapping queue.
+3. Test provider create/cancel dengan mocked repository.
+4. Test widget empty/error state dasar.
+5. Untuk admin, mulai dari test utility jika Vitest ditambahkan.
 
 ### Phase D - Optional Production Enhancement
 
@@ -282,14 +280,12 @@ Kerjakan hanya jika waktu cukup:
 
 ## 9. Skenario Demo Paling Aman
 
-Gunakan satu klinik agar cerita produk fokus.
-
 1. Buka admin panel.
 2. Login admin.
 3. Tunjukkan dashboard dan activity feed.
-4. Buka master data dokter/poli.
-5. Buka jadwal, tunjukkan detail drawer.
-6. Buat atau pilih jadwal open hari ini.
+4. Buka dokter dan poli untuk menunjukkan master data.
+5. Buka jadwal, tunjukkan detail dan duplikasi jadwal.
+6. Pastikan ada jadwal open hari ini.
 7. Buka mobile app.
 8. Login pasien.
 9. Lengkapi profil.
@@ -305,7 +301,7 @@ Gunakan satu klinik agar cerita produk fokus.
 
 Narasi demo:
 
-> "Project ini bukan hanya tampilan. Logic penting antrean dijaga di Supabase RPC dan trigger, jadi walaupun UI salah klik atau stale, database tetap menolak transisi status yang tidak valid."
+> Project ini bukan hanya tampilan. Logic penting antrean dijaga di Supabase RPC dan trigger, jadi walaupun UI stale atau salah klik, database tetap menolak transisi status yang tidak valid.
 
 ---
 
@@ -319,7 +315,7 @@ Narasi demo:
 | Ada tiket called/serving belum selesai | Admin tidak bisa call next | Ini aturan benar; selesaikan/skip/cancel dulu. |
 | Package name belum final | Belum bisa internal test/upload | Tunggu format dari dosen. |
 | RLS memblokir akun admin baru | Admin panel error | Pastikan akun admin punya `user_roles` dan `clinic_staff`. |
-| Test coverage tipis | Regression tidak tertangkap | Tambahkan test minimal setelah QA manual. |
+| Data lama membingungkan QA | Tester salah membaca status antrean | Gunakan seed bersih tanpa demo pasien/tiket sebelum flow penting. |
 
 ---
 
@@ -337,13 +333,13 @@ Narasi demo:
 
 ## 12. Kesimpulan
 
-AntriMedis sudah berada di jalur yang sangat kuat untuk UAS dan portfolio. Fitur inti PRD sudah terimplementasi, dan beberapa bagian bahkan sudah melewati MVP dasar: state machine antrean, RPC transaction jadwal, event feed, profile avatar, Google OAuth, realtime mobile-admin, dan admin drawer operasional.
+AntriMedis sudah berada di jalur yang kuat untuk UAS dan portfolio. Fitur inti PRD sudah terimplementasi, dan beberapa bagian sudah melewati MVP dasar: state machine antrean, RPC transaction jadwal, event feed, profile avatar, Google OAuth, realtime mobile-admin, safe CRUD master data, dan admin workflow yang lebih rapi.
 
 Langkah berikutnya yang paling sehat:
 
-1. Jalankan QA E2E penuh.
-2. Tambahkan test minimal.
-3. Rapikan identity build setelah package name final.
+1. Jalankan QA E2E penuh saat siap.
+2. Rapikan release identity setelah package name final.
+3. Tambahkan test minimal setelah flow final stabil.
 4. Baru pertimbangkan scope tambahan.
 
 Dengan strategi ini, project tetap fokus, terlihat profesional, dan tidak jatuh ke overengineering.
