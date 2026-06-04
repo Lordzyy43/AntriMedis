@@ -124,7 +124,9 @@ class QueueTicketCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     ticket.status == 'waiting'
-                        ? '${ticket.remainingBeforeMe} antrean sebelum Anda'
+                        ? ticket.remainingBeforeMeLabel
+                        : ticket.status == 'missed'
+                        ? 'Menunggu kesempatan panggil ulang'
                         : 'Ikuti arahan petugas klinik',
                     style: const TextStyle(
                       color: AppColors.textMuted,

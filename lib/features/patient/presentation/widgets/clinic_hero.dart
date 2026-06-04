@@ -8,14 +8,14 @@ import '../../../../core/widgets/app_card.dart';
 class ClinicHero extends StatelessWidget {
   const ClinicHero({
     super.key,
-    required this.email,
+    required this.patientName,
     required this.clinicName,
     required this.branchName,
     required this.operationalHours,
     required this.address,
   });
 
-  final String? email;
+  final String? patientName;
   final String clinicName;
   final String branchName;
   final String operationalHours;
@@ -23,195 +23,173 @@ class ClinicHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final greetingName = (patientName?.trim().isNotEmpty ?? false)
+        ? patientName!.trim().split(' ').take(2).join(' ')
+        : 'Pasien';
+
     return AppCard(
       padding: EdgeInsets.zero,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Stack(
-          children: [
-            const Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF075E5D), AppColors.primaryDark],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: const BoxDecoration(
+              color: AppColors.textPrimary,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(AppRadius.lg),
               ),
             ),
-            const Positioned(
-              right: -24,
-              bottom: -26,
-              child: Icon(
-                Icons.local_hospital_outlined,
-                size: 150,
-                color: Color(0x1FFFFFFF),
-              ),
-            ),
-            Positioned(
-              right: 22,
-              top: 22,
-              child: Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: const Icon(
-                  Icons.monitor_heart_outlined,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: AppBadge(
-                          label: branchName,
-                          icon: Icons.apartment_outlined,
-                          color: AppColors.primaryDark,
-                          backgroundColor: Colors.white,
-                        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      AppBadge(
-                        label: operationalHours,
-                        icon: Icons.schedule_outlined,
-                        color: AppColors.success,
-                        backgroundColor: AppColors.successSoft,
+                      child: const Icon(
+                        Icons.local_hospital_rounded,
+                        color: Colors.white,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  const Text(
-                    'Sistem Antrean Real-Time',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0,
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    clinicName,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    address,
-                    style: const TextStyle(
-                      color: Color(0xDFFFFFFF),
-                      height: 1.45,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: const Color(0x1AFFFFFF),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      border: Border.all(color: const Color(0x33FFFFFF)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.person_outline,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            email ?? 'Akun pasien',
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            clinicName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Layanan antrean pasien',
+                            style: TextStyle(
+                              color: Color(0xFFBEEFF0),
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    AppBadge(
+                      label: operationalHours,
+                      icon: Icons.schedule_outlined,
+                      color: Colors.white,
+                      backgroundColor: Colors.white24,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  'Halo, $greetingName',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    height: 1.08,
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: const [
-                      _HeroSignal(icon: Icons.bolt_outlined, label: 'Live'),
-                      SizedBox(width: AppSpacing.sm),
-                      _HeroSignal(
-                        icon: Icons.timer_outlined,
-                        label: 'Estimasi',
-                      ),
-                      SizedBox(width: AppSpacing.sm),
-                      _HeroSignal(
-                        icon: Icons.notifications_active_outlined,
-                        label: 'Notifikasi',
-                      ),
-                    ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                const Text(
+                  'Pilih layanan, ambil nomor, lalu pantau giliran Anda dari ponsel.',
+                  style: TextStyle(
+                    color: Color(0xFFD8F7F7),
+                    height: 1.4,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              children: [
+                _InfoRow(
+                  icon: Icons.apartment_outlined,
+                  title: branchName,
+                  subtitle: 'Cabang layanan',
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _InfoRow(
+                  icon: Icons.location_on_outlined,
+                  title: address,
+                  subtitle: 'Alamat klinik',
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _HeroSignal extends StatelessWidget {
-  const _HeroSignal({required this.icon, required this.label});
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
 
   final IconData icon;
-  final String label;
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.sm,
+    return Row(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: AppColors.primarySoft,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+          child: Icon(icon, size: 19, color: AppColors.primaryDark),
         ),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: Colors.white24),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 16),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                subtitle,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
+                  color: AppColors.textMuted,
+                  fontSize: 11,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

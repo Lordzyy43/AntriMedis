@@ -34,4 +34,31 @@ class NotificationRepository {
         })
         .eq('id', notificationId);
   }
+
+  RealtimeChannel subscribeToMyNotifications({
+    required void Function() onChanged,
+  }) {
+    final userId = _client.auth.currentUser?.id;
+    final channel = _client.channel('notifications:${userId ?? 'guest'}');
+    if (userId == null) return channel;
+
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'notifications',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (_) => onChanged(),
+        )
+        .subscribe();
+    return channel;
+  }
+
+  Future<void> unsubscribe(RealtimeChannel channel) {
+    return _client.removeChannel(channel);
+  }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/config/app_colors.dart';
 import '../../../../core/config/app_spacing.dart';
+import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_error_banner.dart';
 import '../../../../core/widgets/empty_state.dart';
 import '../../../queue/data/models/queue_ticket_detail.dart';
@@ -45,6 +47,11 @@ class PatientQueuesPage extends StatelessWidget {
               AppErrorBanner(message: queue.error!),
               const SizedBox(height: AppSpacing.lg),
             ],
+            _QueueSummaryCard(
+              activeCode: activeTicket?.queueCode,
+              historyCount: historyTickets.length,
+            ),
+            const SizedBox(height: AppSpacing.lg),
             Text('Aktif', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.md),
             if (activeTicket == null)
@@ -104,7 +111,7 @@ class PatientQueuesPage extends StatelessWidget {
         return AlertDialog(
           title: const Text('Batalkan antrean saya?'),
           content: const Text(
-            'Aksi ini hanya membatalkan antrean dari sisi pasien saat status masih menunggu. Nomor antrean yang dibatalkan tidak bisa digunakan kembali.',
+            'Antrean yang sudah dibatalkan tidak bisa dipakai kembali. Anda masih bisa mengambil nomor baru jika jadwal dan kuota tersedia.',
           ),
           actions: [
             TextButton(
@@ -113,7 +120,7 @@ class PatientQueuesPage extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Batalkan Antrean Saya'),
+              child: const Text('Batalkan Antrean'),
             ),
           ],
         );
@@ -122,5 +129,69 @@ class PatientQueuesPage extends StatelessWidget {
 
     if (ok != true || !context.mounted) return;
     await context.read<QueueProvider>().cancelActiveTicket();
+  }
+}
+
+class _QueueSummaryCard extends StatelessWidget {
+  const _QueueSummaryCard({
+    required this.activeCode,
+    required this.historyCount,
+  });
+
+  final String? activeCode;
+  final int historyCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: activeCode == null
+                  ? AppColors.surfaceMuted
+                  : AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              activeCode == null
+                  ? Icons.confirmation_number_outlined
+                  : Icons.notifications_active_outlined,
+              color: activeCode == null
+                  ? AppColors.textMuted
+                  : AppColors.primaryDark,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  activeCode == null
+                      ? 'Belum ada antrean aktif'
+                      : 'Nomor aktif $activeCode',
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '$historyCount tiket tersimpan di riwayat',
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

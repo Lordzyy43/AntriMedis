@@ -43,6 +43,63 @@ class ScheduleAvailability {
 
   bool get canTakeQueue => isTakeable && queueSessionId != null;
 
+  int get usedQuota => totalTaken.clamp(0, quotaLimit);
+
+  double get quotaUsageRatio {
+    if (quotaLimit <= 0) return 0;
+    return (usedQuota / quotaLimit).clamp(0, 1).toDouble();
+  }
+
+  bool get isFull => remainingQuota <= 0 || status == 'full';
+
+  bool get hasStarted => !DateTime.now().isBefore(_dateTimeFor(startTime));
+
+  bool get hasEnded => !DateTime.now().isBefore(_dateTimeFor(endTime));
+
+  bool get isBeforeStart => !hasStarted;
+
+  bool get isOperatingNow => hasStarted && !hasEnded;
+
+  String get operationalPhaseLabel {
+    if (hasEnded) return 'Selesai hari ini';
+    if (isBeforeStart) return 'Belum mulai';
+    return 'Sedang buka';
+  }
+
+  String get patientGuidance {
+    if (canTakeQueue && isBeforeStart) {
+      return 'Nomor bisa diambil sekarang. Pemanggilan dimulai pukul $startTime.';
+    }
+    if (canTakeQueue && isOperatingNow) {
+      return 'Sesi sedang berjalan. Ambil nomor dan pantau giliran Anda.';
+    }
+    if (canTakeQueue) {
+      return availabilityReason;
+    }
+    return availabilityReason;
+  }
+
+  String get estimatedFirstWaitLabel {
+    if (remainingQuota <= 0) return 'Kuota penuh';
+    if (totalTaken <= 0) return 'Nomor awal';
+    final minutes = totalTaken * averageServiceMinutes;
+    if (minutes <= 0) return 'Segera';
+    return '~ $minutes menit';
+  }
+
+  DateTime _dateTimeFor(String timeValue) {
+    final parts = timeValue.split(':');
+    final hour = int.tryParse(parts.first) ?? 0;
+    final minute = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
+    return DateTime(
+      scheduleDate.year,
+      scheduleDate.month,
+      scheduleDate.day,
+      hour,
+      minute,
+    );
+  }
+
   factory ScheduleAvailability.fromJson(Map<String, dynamic> json) {
     return ScheduleAvailability(
       scheduleId: json['schedule_id'] as String,

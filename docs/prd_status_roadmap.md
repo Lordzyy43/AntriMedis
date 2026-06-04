@@ -1,7 +1,8 @@
 # PRD Status & Roadmap - AntriMedis
 
-**Tanggal update:** 1 Juni 2026  
+**Tanggal update:** 4 Juni 2026  
 **Dokumen acuan:** `docs/prd.md`  
+**Dokumen business flow antrean:** `docs/queue_business_flow.md`  
 **Status project:** UAS-ready beta / production-like MVP  
 **Scope aktif:** Satu klinik, satu cabang utama, dua role utama: pasien dan admin klinik
 
@@ -9,7 +10,7 @@
 
 ## 1. Executive Summary
 
-AntriMedis saat ini sudah melewati tahap prototype UI. Project sudah memiliki mobile app pasien, web admin panel, Supabase Auth, PostgreSQL schema, RLS, RPC, realtime subscription, Storage avatar, local notification, safe CRUD master data, dan business logic antrean yang dijaga dari sisi database.
+AntriMedis saat ini sudah melewati tahap prototype UI. Project sudah memiliki mobile app pasien, web admin panel, Supabase Auth, PostgreSQL schema, RLS, RPC, realtime subscription, Storage avatar, local notification, notification inbox, safe CRUD master data, dan business logic antrean yang dijaga dari sisi database.
 
 Keputusan produk saat ini tetap sehat: **fokus sebagai sistem antrean digital untuk satu klinik terlebih dahulu**. Struktur database memang sudah siap dikembangkan ke multi-klinik/multi-cabang, tetapi UI global picker, owner analytics, role dokter penuh, FCM production push, dan fitur klinik lain tetap future scope.
 
@@ -78,9 +79,10 @@ Kesimpulan: AntriMedis berada di level **production-like MVP**. Untuk ukuran UAS
 | Ambil nomor antrean | RPC `create_queue_ticket` | Selesai, hardened | Dibatasi satu antrean aktif per hari per cabang. |
 | Konfirmasi ambil nomor | Dialog konfirmasi sebelum create ticket | Selesai | Mengurangi accidental tap. |
 | Tracking realtime | Subscribe ke ticket/session | Selesai | Update dari admin mengubah mobile. |
+| Jadwal realtime | Subscribe ke session dan jadwal | Selesai | Perubahan `queue_sessions` dan `doctor_schedules` me-refresh home pasien. |
 | Estimasi tunggu | `estimated_wait_minutes` + wording perkiraan | Selesai | Estimasi adalah perkiraan operasional, bukan presisi mutlak. |
 | Cancel antrean | RPC `cancel_my_ticket` | Selesai, hardened | Hanya bisa cancel saat status `waiting`. |
-| Notifikasi lokal | Near/called/skipped/cancelled | MVP selesai | Full production butuh FCM. |
+| Notifikasi lokal/inbox | Near/called/missed/skipped/cancelled/expired | MVP selesai | Full production saat app mati total butuh FCM. |
 | Riwayat antrean | Tiket aktif dan history | Selesai | Perlu QA dengan banyak status. |
 | Navigasi | Floating navigation custom | Selesai | Sudah lebih distinctive daripada default bottom nav. |
 | Empty state tracking | Empty state dengan CTA kembali ke jadwal | Selesai | Lebih proper ketika tidak ada antrean aktif. |
@@ -92,7 +94,7 @@ Kesimpulan: AntriMedis berada di level **production-like MVP**. Untuk ukuran UAS
 | Login admin | Supabase Auth + protected route | Selesai | Membutuhkan role/staff di DB. |
 | Dashboard | Operational overview | Selesai | Ada stats, activity feed, readiness banner, dan jadwal. |
 | Activity feed | Dari `queue_events` via `v_queue_event_feed` | Selesai, hardened | Lebih valid daripada menyimpulkan dari tiket terbaru. |
-| Queue management | Panggil, layani, selesai, skip, cancel | Selesai, hardened | Hari-H only dan mengikuti state machine DB. |
+| Queue management | Panggil, layani, selesai, no-show, recall, skip, cancel, close session | Selesai, hardened | Hari-H only, after-hours draining, dan mengikuti state machine DB. |
 | Detail antrean | Detail pasien dan posisi antrean | Selesai | Operator bisa inspect sebelum aksi. |
 | Jadwal | Create/update via RPC transaction | Selesai, hardened | Schedule dan queue session atomic. |
 | Duplikasi jadwal | Per baris dan massal ke tanggal target | Selesai | `full` menjadi `open`, `cancelled` tidak diduplikasi. |
@@ -108,15 +110,17 @@ Kesimpulan: AntriMedis berada di level **production-like MVP**. Untuk ukuran UAS
 | --- | --- | --- | --- |
 | Schema utama | Klinik, cabang, staff, poli, dokter, jadwal, session, tiket, event, notification | Selesai | Struktur sudah scalable. |
 | RLS | Policy pasien/staff | Selesai, perlu final audit | Normal flow sudah diperbaiki dari issue profile/RLS. |
-| RPC ambil antrean | `create_queue_ticket` | Hardened | Mengunci quota, session open, schedule open, active queue. |
+| RPC ambil antrean | `create_queue_ticket` | Hardened | Mengunci quota, session open, schedule open, active queue, dan menolak tepat/sesudah jam selesai. |
 | RPC panggil antrean | `call_next_queue` | Hardened | Tidak bisa call next bila masih ada called/serving. |
+| RPC recall terlewat | `recall_missed_queue` | Selesai, hardened | Hanya aktif setelah waiting habis dan tidak ada called/serving. |
 | RPC update status | `update_queue_status` | Hardened | Transisi status dibatasi. |
+| RPC tutup sesi | `close_queue_session` | Selesai, hardened | Waiting menjadi expired, missed menjadi skipped, called/serving wajib selesai dulu. |
 | RPC cancel pasien | `cancel_my_ticket` | Selesai | Pasien tidak direct update table lagi. |
 | Trigger state machine | `queue_tickets_validate_status_transition` | Selesai | DB menolak transisi status ilegal. |
 | RPC jadwal | `create_schedule_with_session`, `update_schedule_with_session` | Selesai | Jadwal dan session atomic. |
 | RPC safe delete | `delete_doctor_if_unused`, `delete_polyclinic_if_unused`, `delete_schedule_if_empty` | Selesai | Menjaga history tetap valid. |
 | Read model | `v_schedule_availability`, `v_queue_ticket_details`, `v_queue_event_feed` | Selesai | Frontend tidak perlu join manual kompleks. |
-| Realtime | `queue_tickets`, `queue_sessions`, `notifications` | Selesai | Cukup untuk demo realtime. |
+| Realtime | `queue_tickets`, `queue_sessions`, `doctor_schedules`, `queue_events`, `notifications` | Selesai | Cukup untuk demo realtime admin-mobile. |
 | Storage avatar | Bucket/policy avatar | Selesai | Cleanup file lama masih bisa di-hardening. |
 
 ---
@@ -129,15 +133,22 @@ Database membatasi transisi status antrean:
 
 ```txt
 waiting -> called / skipped / cancelled / expired
-called  -> serving / skipped / cancelled / expired
+called  -> serving / missed / skipped / cancelled / expired
 serving -> completed / skipped / cancelled / expired
+missed  -> called / skipped / cancelled / expired
 ```
 
 Status final tidak bisa dikembalikan ke status aktif. Frontend membantu UX, tetapi database tetap menjadi penjaga aturan final.
 
+Recall `missed -> called` dilakukan lewat `recall_missed_queue`, bukan update manual biasa. Nomor antrean tetap sama saat recall.
+
 ### 5.2 Call Next Guard
 
 Admin tidak bisa memanggil nomor berikutnya jika masih ada tiket `called` atau `serving` pada sesi yang sama. Ini menjaga operasional agar tidak ada dua pasien aktif bersamaan tanpa diselesaikan.
+
+Admin juga tidak bisa memanggil sebelum jam mulai praktik. Tepat saat jam selesai, loket online pasien sudah tutup; setelah itu admin tetap boleh menghabiskan waiting yang sudah terlanjur masuk sebelum jam selesai.
+
+Contoh aturan jam: untuk jadwal `15:00-18:00`, pasien masih bisa ambil nomor pada `17:59`, tetapi sudah ditolak pada `18:00`. Admin tetap dapat memanggil sisa waiting setelah `18:00`.
 
 ### 5.3 Active Queue Policy
 
@@ -160,7 +171,13 @@ Jika session gagal, schedule ikut rollback.
 
 Dashboard admin membaca aktivitas dari `queue_events` melalui `v_queue_event_feed`, sehingga histori operasional lebih benar daripada sekadar mengambil tiket terbaru.
 
-### 5.7 Safe Delete Master Data
+### 5.7 Missed, Recall, dan Close Session
+
+Pasien yang tidak hadir saat panggilan pertama masuk status `missed`, bukan langsung final. Admin memproses waiting reguler terlebih dahulu. Setelah waiting habis, admin dapat memanggil ulang missed paling awal lewat `recall_missed_queue`.
+
+Jika pasien tetap tidak hadir setelah recall, status menjadi `skipped` final. Saat sesi ditutup, waiting menjadi `expired` dan missed menjadi `skipped` final.
+
+### 5.8 Safe Delete Master Data
 
 Dokter dan poli yang belum pernah dipakai bisa dihapus. Dokter dan poli yang sudah dipakai jadwal/history akan diarsipkan (`is_active=false`) agar data lama tetap konsisten.
 
@@ -173,7 +190,7 @@ Dokter dan poli yang belum pernah dipakai bisa dihapus. Dokter dan poli yang sud
 | Gap | Dampak | Rekomendasi |
 | --- | --- | --- |
 | E2E QA belum dicatat sebagai checklist final | Flow bisa tampak benar tapi gagal pada urutan tertentu | Jalankan checklist admin-mobile dari awal sampai selesai sebelum demo. |
-| Package name masih `com.example.apps` | Belum siap release/internal test | Ganti setelah dosen memberi package final. |
+| Package id final dosen mungkin berbeda | Perlu penyesuaian sebelum upload/internal test | Saat ini memakai `com.antrimedis.app`; ganti bila dosen memberi format khusus. |
 | RLS final audit belum terdokumentasi detail | Risiko akses terlalu luas/sempit | Audit policy sebelum final deploy/demo besar. |
 | Avatar cleanup belum final | Storage bisa menumpuk file lama | Hapus avatar lama saat upload/remove atau gunakan path deterministic. |
 
@@ -207,6 +224,7 @@ Dokter dan poli yang belum pernah dipakai bisa dihapus. Dokter dan poli yang sud
 - Admin bisa membuat dokter, poli, dan jadwal hari ini.
 - Jadwal yang dibuat admin muncul di mobile.
 - Pasien bisa ambil nomor antrean setelah konfirmasi.
+- Pasien ditolak mengambil nomor tepat saat atau setelah jam selesai jadwal.
 - Pasien tidak bisa punya dua antrean aktif di hari/cabang yang sama.
 - Admin melihat tiket pasien di queue management.
 - Admin memanggil antrean pertama.
@@ -244,15 +262,16 @@ Prioritas paling dekat adalah membuktikan flow dari database real:
 10. Admin selesaikan.
 11. Cek history pasien.
 12. Ulangi untuk skip/cancel.
+13. Uji after-hours: tepat/sesudah jam selesai pasien ditolak, admin masih bisa menyelesaikan sisa waiting.
 
 ### Phase B - Release Identity
 
 Menunggu package name dari dosen:
 
-1. Ganti Android `applicationId`.
-2. Ganti namespace jika diperlukan.
-3. Rapikan app icon.
-4. Rapikan splash screen.
+1. Konfirmasi apakah `com.antrimedis.app` sudah boleh dipakai.
+2. Ganti Android `applicationId`/namespace jika dosen memberi format khusus.
+3. Rapikan app icon jika ingin asset final khusus.
+4. Rapikan splash screen jika ingin asset final khusus.
 5. Build APK debug/release sesuai kebutuhan.
 6. Jalankan final QA checklist.
 

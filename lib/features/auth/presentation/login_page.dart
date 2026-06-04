@@ -397,7 +397,7 @@ class _LoginHeader extends StatelessWidget {
                 ),
                 SizedBox(height: 2),
                 AppBadge(
-                  label: 'Real-time queue',
+                  label: 'Antrean aktif',
                   icon: Icons.bolt,
                   color: AppColors.primaryDark,
                   backgroundColor: AppColors.primarySoft,
