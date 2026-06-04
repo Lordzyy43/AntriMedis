@@ -44,6 +44,11 @@ class NotificationsPage extends StatelessWidget {
               AppErrorBanner(message: provider.error!),
               const SizedBox(height: AppSpacing.lg),
             ],
+            _NotificationSummary(
+              total: provider.notifications.length,
+              unread: provider.unreadCount,
+            ),
+            const SizedBox(height: AppSpacing.lg),
             if (provider.isLoading && provider.notifications.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(top: 48),
@@ -69,6 +74,63 @@ class NotificationsPage extends StatelessWidget {
   }
 }
 
+class _NotificationSummary extends StatelessWidget {
+  const _NotificationSummary({required this.total, required this.unread});
+
+  final int total;
+  final int unread;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: unread > 0 ? AppColors.primarySoft : AppColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Icon(
+              unread > 0
+                  ? Icons.notifications_active_outlined
+                  : Icons.notifications_none_outlined,
+              color: unread > 0 ? AppColors.primaryDark : AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  unread > 0
+                      ? '$unread notifikasi belum dibaca'
+                      : 'Semua notifikasi sudah dibaca',
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '$total pembaruan antrean tersimpan',
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({required this.notification});
 
@@ -76,8 +138,8 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final icon = _iconForType(notification.type);
-    final color = notification.isRead ? AppColors.textMuted : AppColors.primary;
+    final tone = _toneForType(notification.type);
+    final color = notification.isRead ? AppColors.textMuted : tone.color;
 
     return AppCard(
       onTap: notification.isRead
@@ -87,7 +149,7 @@ class _NotificationCard extends StatelessWidget {
             ),
       backgroundColor: notification.isRead
           ? AppColors.surface
-          : AppColors.primarySoft,
+          : tone.backgroundColor,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -100,7 +162,7 @@ class _NotificationCard extends StatelessWidget {
                   : AppColors.surface,
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(tone.icon, color: color, size: 20),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -153,15 +215,65 @@ class _NotificationCard extends StatelessWidget {
     );
   }
 
-  IconData _iconForType(String type) {
+  _NotificationTone _toneForType(String type) {
     return switch (type) {
-      'queue_created' => Icons.confirmation_number_outlined,
-      'queue_called' => Icons.campaign_outlined,
-      'queue_near' => Icons.timer_outlined,
-      'queue_skipped' => Icons.skip_next_outlined,
-      'queue_cancelled' => Icons.cancel_outlined,
-      'schedule_changed' => Icons.event_repeat_outlined,
-      _ => Icons.notifications_outlined,
+      'queue_created' => const _NotificationTone(
+        icon: Icons.confirmation_number_outlined,
+        color: AppColors.primary,
+        backgroundColor: AppColors.primarySoft,
+      ),
+      'queue_called' => const _NotificationTone(
+        icon: Icons.campaign_outlined,
+        color: AppColors.warning,
+        backgroundColor: AppColors.warningSoft,
+      ),
+      'queue_near' => const _NotificationTone(
+        icon: Icons.timer_outlined,
+        color: AppColors.violet,
+        backgroundColor: AppColors.violetSoft,
+      ),
+      'queue_skipped' => const _NotificationTone(
+        icon: Icons.skip_next_outlined,
+        color: AppColors.warning,
+        backgroundColor: AppColors.warningSoft,
+      ),
+      'queue_missed' => const _NotificationTone(
+        icon: Icons.replay_outlined,
+        color: AppColors.violet,
+        backgroundColor: AppColors.violetSoft,
+      ),
+      'queue_cancelled' => const _NotificationTone(
+        icon: Icons.cancel_outlined,
+        color: AppColors.danger,
+        backgroundColor: AppColors.dangerSoft,
+      ),
+      'queue_expired' => const _NotificationTone(
+        icon: Icons.timer_off_outlined,
+        color: AppColors.danger,
+        backgroundColor: AppColors.dangerSoft,
+      ),
+      'schedule_changed' => const _NotificationTone(
+        icon: Icons.event_repeat_outlined,
+        color: AppColors.secondary,
+        backgroundColor: AppColors.secondarySoft,
+      ),
+      _ => const _NotificationTone(
+        icon: Icons.notifications_outlined,
+        color: AppColors.primary,
+        backgroundColor: AppColors.primarySoft,
+      ),
     };
   }
+}
+
+class _NotificationTone {
+  const _NotificationTone({
+    required this.icon,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  final IconData icon;
+  final Color color;
+  final Color backgroundColor;
 }

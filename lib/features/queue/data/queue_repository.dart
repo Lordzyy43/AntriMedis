@@ -32,7 +32,7 @@ class QueueRepository {
         .from('v_queue_ticket_details')
         .select()
         .eq('patient_id', userId)
-        .inFilter('status', ['waiting', 'called', 'serving'])
+        .inFilter('status', ['waiting', 'called', 'serving', 'missed'])
         .order('created_at', ascending: false)
         .limit(1)
         .maybeSingle();
@@ -125,6 +125,70 @@ class QueueRepository {
             column: 'id',
             value: ticket.queueSessionId,
           ),
+          callback: (_) => onChanged(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'queue_events',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'queue_ticket_id',
+            value: ticket.ticketId,
+          ),
+          callback: (_) => onChanged(),
+        )
+        .subscribe();
+    return channel;
+  }
+
+  RealtimeChannel subscribeToTicketEvents({
+    required String ticketId,
+    required void Function() onChanged,
+  }) {
+    final channel = _client.channel('ticket-events:$ticketId');
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'queue_tickets',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: ticketId,
+          ),
+          callback: (_) => onChanged(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'queue_events',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'queue_ticket_id',
+            value: ticketId,
+          ),
+          callback: (_) => onChanged(),
+        )
+        .subscribe();
+    return channel;
+  }
+
+  RealtimeChannel subscribeToScheduleFeed({
+    required void Function() onChanged,
+  }) {
+    final channel = _client.channel('patient:schedule-feed');
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'queue_sessions',
+          callback: (_) => onChanged(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'doctor_schedules',
           callback: (_) => onChanged(),
         )
         .subscribe();

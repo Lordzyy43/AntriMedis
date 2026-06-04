@@ -32,6 +32,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _imagePicker = ImagePicker();
 
   DateTime? _birthDate;
@@ -42,6 +44,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -65,7 +69,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEditing ? 'Akun Saya' : 'Lengkapi Profil'),
+        title: Text(widget.isEditing ? 'Profil' : 'Lengkapi Profil'),
       ),
       body: SafeArea(
         child: ListView(
@@ -91,6 +95,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
               AppErrorBanner(message: profileProvider.error!),
               const SizedBox(height: AppSpacing.lg),
             ],
+            if (widget.isEditing) ...[
+              _ProfileCompletionNotice(profile: profile),
+              const SizedBox(height: AppSpacing.lg),
+            ],
             AppCard(
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Form(
@@ -98,14 +106,11 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Data pasien',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    const Text(
-                      'Data ini membantu klinik mengenali pasien saat nomor antrean dipanggil.',
-                      style: TextStyle(color: AppColors.textMuted, height: 1.4),
+                    _CardTitle(
+                      icon: Icons.assignment_ind_outlined,
+                      title: 'Data Pribadi',
+                      subtitle:
+                          'Data ini membantu klinik mengenali pasien saat nomor antrean dipanggil.',
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     TextFormField(
@@ -211,21 +216,18 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         ),
                       ),
                     ),
-                    if (widget.isEditing) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: profileProvider.isSaving ? null : _signOut,
-                          icon: const Icon(Icons.logout),
-                          label: const Text('Keluar'),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
             ),
+            if (widget.isEditing) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _AccountActionPanel(
+                onChangePassword: _showChangePasswordSheet,
+                onSignOut: _confirmSignOut,
+                isLoading: context.watch<AuthProvider>().isLoading,
+              ),
+            ],
           ],
         ),
       ),
@@ -260,6 +262,108 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     if (widget.closeAfterSave) {
       Navigator.of(context).pop();
     }
+  }
+
+  Future<void> _showChangePasswordSheet() async {
+    _passwordController.clear();
+    _confirmPasswordController.clear();
+    final formKey = GlobalKey<FormState>();
+
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: AppSpacing.lg,
+            right: AppSpacing.lg,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+            top: AppSpacing.sm,
+          ),
+          child: SafeArea(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CardTitle(
+                    icon: Icons.lock_reset_outlined,
+                    title: 'Ubah Password',
+                    subtitle:
+                        'Gunakan minimal 8 karakter. Password baru akan dipakai saat login berikutnya.',
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Password baru',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                    validator: (value) =>
+                        value == null || value.trim().length < 8
+                        ? 'Password minimal 8 karakter'
+                        : null,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextFormField(
+                    controller: _confirmPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Ulangi password baru',
+                      prefixIcon: Icon(Icons.lock_person_outlined),
+                    ),
+                    validator: (value) => value != _passwordController.text
+                        ? 'Konfirmasi password belum sama'
+                        : null,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Batal'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            if (!formKey.currentState!.validate()) return;
+                            Navigator.of(context).pop(true);
+                          },
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: const Text('Simpan'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (ok != true || !mounted) return;
+    final saved = await context.read<AuthProvider>().updatePassword(
+      _passwordController.text,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          saved
+              ? 'Password berhasil diperbarui.'
+              : context.read<AuthProvider>().error ??
+                    'Password belum bisa diperbarui.',
+        ),
+      ),
+    );
   }
 
   Future<void> _syncGoogleAvatar(String? googleAvatarUrl) async {
@@ -435,6 +539,32 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       return 'Izin kamera atau galeri belum diberikan. Aktifkan izin aplikasi di pengaturan perangkat.';
     }
     return 'Avatar belum bisa dipilih. Coba gunakan foto lain atau ulangi beberapa saat lagi.';
+  }
+
+  Future<void> _confirmSignOut() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Keluar dari akun?'),
+          content: const Text(
+            'Sesi pasien di perangkat ini akan ditutup. Anda bisa masuk kembali kapan saja.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Batal'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(true),
+              icon: const Icon(Icons.logout),
+              label: const Text('Keluar'),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok == true) await _signOut();
   }
 
   Future<void> _signOut() async {
@@ -661,6 +791,231 @@ class _Header extends StatelessWidget {
     if (profile.gender?.trim().isNotEmpty ?? false) completed++;
     if (profile.birthDate != null) completed++;
     return (completed / 4).clamp(0.0, 1.0);
+  }
+}
+
+class _ProfileCompletionNotice extends StatelessWidget {
+  const _ProfileCompletionNotice({required this.profile});
+
+  final PatientProfile? profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final completion = _completionScore(profile);
+    final isComplete = profile?.isComplete == true;
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: isComplete ? AppColors.successSoft : AppColors.warningSoft,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Icon(
+              isComplete
+                  ? Icons.verified_user_outlined
+                  : Icons.assignment_late_outlined,
+              color: isComplete ? AppColors.success : AppColors.warning,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        isComplete
+                            ? 'Profil siap digunakan'
+                            : 'Lengkapi profil Anda',
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${(completion * 100).round()}%',
+                      style: const TextStyle(
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: 6,
+                    value: completion,
+                    color: isComplete ? AppColors.success : AppColors.primary,
+                    backgroundColor: AppColors.border,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _completionScore(PatientProfile? profile) {
+    if (profile == null) return 0.25;
+    var completed = 0;
+    if (profile.fullName.trim().length >= 3) completed++;
+    if (profile.phoneNumber?.trim().isNotEmpty ?? false) completed++;
+    if (profile.gender?.trim().isNotEmpty ?? false) completed++;
+    if (profile.birthDate != null) completed++;
+    return (completed / 4).clamp(0.0, 1.0);
+  }
+}
+
+class _CardTitle extends StatelessWidget {
+  const _CardTitle({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: AppColors.primarySoft,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+          child: Icon(icon, color: AppColors.primaryDark, size: 20),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AccountActionPanel extends StatelessWidget {
+  const _AccountActionPanel({
+    required this.onChangePassword,
+    required this.onSignOut,
+    required this.isLoading,
+  });
+
+  final VoidCallback onChangePassword;
+  final VoidCallback onSignOut;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(
+            icon: Icons.settings_outlined,
+            title: 'Pengaturan Akun',
+            subtitle: 'Kelola akses akun pasien dan keamanan login.',
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _AccountActionTile(
+            icon: Icons.lock_reset_outlined,
+            title: 'Ubah Password',
+            subtitle: 'Perbarui password login akun pasien.',
+            onTap: isLoading ? null : onChangePassword,
+          ),
+          const Divider(height: 1),
+          _AccountActionTile(
+            icon: Icons.logout,
+            title: 'Keluar',
+            subtitle: 'Tutup sesi akun di perangkat ini.',
+            isDanger: true,
+            onTap: isLoading ? null : onSignOut,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountActionTile extends StatelessWidget {
+  const _AccountActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.isDanger = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+  final bool isDanger;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDanger ? AppColors.danger : AppColors.primaryDark;
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isDanger ? AppColors.dangerSoft : AppColors.primarySoft,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: isDanger ? AppColors.danger : AppColors.textPrimary,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      subtitle: Text(subtitle),
+      trailing: Icon(Icons.chevron_right, color: color),
+      onTap: onTap,
+    );
   }
 }
 

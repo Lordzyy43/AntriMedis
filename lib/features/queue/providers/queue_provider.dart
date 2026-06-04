@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -15,19 +17,27 @@ class QueueProvider extends ChangeNotifier {
   List<ScheduleAvailability> _schedules = [];
   List<QueueTicketDetail> _tickets = [];
   QueueTicketDetail? _activeTicket;
-  RealtimeChannel? _channel;
+  QueueTicketDetail? _recentResolvedTicket;
+  RealtimeChannel? _activeTicketChannel;
+  RealtimeChannel? _scheduleFeedChannel;
+  Timer? _scheduleRefreshDebounce;
   bool _isLoading = false;
   String? _error;
-  String? _notifiedTicketId;
+  String? _lastNearNotificationKey;
   String? _lastTicketStatus;
+  DateTime? _lastScheduleSyncedAt;
 
   List<ScheduleAvailability> get schedules => _schedules;
   List<QueueTicketDetail> get tickets => _tickets;
   List<QueueTicketDetail> get historyTickets =>
       _tickets.where((ticket) => !ticket.isActive).toList();
   QueueTicketDetail? get activeTicket => _activeTicket;
+  QueueTicketDetail? get trackingTicket =>
+      _activeTicket ?? _recentResolvedTicket;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get isScheduleRealtimeActive => _scheduleFeedChannel != null;
+  DateTime? get lastScheduleSyncedAt => _lastScheduleSyncedAt;
 
   Future<void> loadHome() async {
     _setLoading(true);
@@ -39,9 +49,12 @@ class QueueProvider extends ChangeNotifier {
       ]);
       _schedules = results[0] as List<ScheduleAvailability>;
       _activeTicket = results[1] as QueueTicketDetail?;
+      _recentResolvedTicket = null;
       _tickets = results[2] as List<QueueTicketDetail>;
+      _lastScheduleSyncedAt = DateTime.now();
       _lastTicketStatus = _activeTicket?.status;
       _subscribeActiveTicket();
+      _subscribeScheduleFeed();
       _error = null;
     } catch (error) {
       _error = 'Gagal memuat data antrean.';
@@ -61,9 +74,17 @@ class QueueProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       _activeTicket = await _repository.createTicket(queueSessionId);
-      _tickets = await _repository.fetchMyTickets();
+      _recentResolvedTicket = null;
+      final results = await Future.wait([
+        _repository.fetchSchedules(),
+        _repository.fetchMyTickets(),
+      ]);
+      _schedules = results[0] as List<ScheduleAvailability>;
+      _tickets = results[1] as List<QueueTicketDetail>;
+      _lastScheduleSyncedAt = DateTime.now();
       _lastTicketStatus = _activeTicket?.status;
       _subscribeActiveTicket();
+      _subscribeScheduleFeed();
       _error = null;
       return true;
     } on PostgrestException catch (error) {
@@ -82,13 +103,23 @@ class QueueProvider extends ChangeNotifier {
     if (ticketId == null) return;
     try {
       final previousStatus = _activeTicket?.status;
-      _activeTicket = await _repository.fetchTicketDetail(ticketId);
-      final ticket = _activeTicket;
-      if (ticket != null) {
-        await _maybeNotify(ticket, previousStatus ?? _lastTicketStatus);
-        _lastTicketStatus = ticket.status;
+      final ticket = await _repository.fetchTicketDetail(ticketId);
+      await _maybeNotify(ticket, previousStatus ?? _lastTicketStatus);
+      _lastTicketStatus = ticket.status;
+      if (ticket.isActive) {
+        _activeTicket = ticket;
+        _recentResolvedTicket = null;
+      } else {
+        _activeTicket = null;
+        _recentResolvedTicket = ticket;
       }
-      _tickets = await _repository.fetchMyTickets();
+      final results = await Future.wait([
+        _repository.fetchSchedules(),
+        _repository.fetchMyTickets(),
+      ]);
+      _schedules = results[0] as List<ScheduleAvailability>;
+      _tickets = results[1] as List<QueueTicketDetail>;
+      _lastScheduleSyncedAt = DateTime.now();
       notifyListeners();
     } catch (_) {
       // Realtime refresh failures are non-blocking; manual refresh still works.
@@ -96,26 +127,43 @@ class QueueProvider extends ChangeNotifier {
   }
 
   Future<void> clearForSignOut() async {
-    final channel = _channel;
-    if (channel != null) {
-      await _repository.unsubscribe(channel);
+    _scheduleRefreshDebounce?.cancel();
+    final activeTicketChannel = _activeTicketChannel;
+    if (activeTicketChannel != null) {
+      await _repository.unsubscribe(activeTicketChannel);
     }
-    _channel = null;
+    final scheduleFeedChannel = _scheduleFeedChannel;
+    if (scheduleFeedChannel != null) {
+      await _repository.unsubscribe(scheduleFeedChannel);
+    }
+    _activeTicketChannel = null;
+    _scheduleFeedChannel = null;
     _schedules = [];
     _tickets = [];
     _activeTicket = null;
+    _recentResolvedTicket = null;
     _error = null;
     _lastTicketStatus = null;
-    _notifiedTicketId = null;
+    _lastNearNotificationKey = null;
+    _lastScheduleSyncedAt = null;
     notifyListeners();
   }
 
   Future<void> refreshTickets() async {
     try {
-      _tickets = await _repository.fetchMyTickets();
-      _activeTicket = await _repository.fetchActiveTicket();
+      final results = await Future.wait([
+        _repository.fetchSchedules(),
+        _repository.fetchMyTickets(),
+        _repository.fetchActiveTicket(),
+      ]);
+      _schedules = results[0] as List<ScheduleAvailability>;
+      _tickets = results[1] as List<QueueTicketDetail>;
+      _activeTicket = results[2] as QueueTicketDetail?;
+      _recentResolvedTicket = null;
+      _lastScheduleSyncedAt = DateTime.now();
       _lastTicketStatus = _activeTicket?.status;
       _subscribeActiveTicket();
+      _subscribeScheduleFeed();
       _error = null;
       notifyListeners();
     } catch (_) {
@@ -132,8 +180,16 @@ class QueueProvider extends ChangeNotifier {
     try {
       await _repository.cancelTicket(ticket.ticketId);
       _activeTicket = null;
-      _tickets = await _repository.fetchMyTickets();
+      _recentResolvedTicket = null;
+      final results = await Future.wait([
+        _repository.fetchSchedules(),
+        _repository.fetchMyTickets(),
+      ]);
+      _schedules = results[0] as List<ScheduleAvailability>;
+      _tickets = results[1] as List<QueueTicketDetail>;
+      _lastScheduleSyncedAt = DateTime.now();
       _subscribeActiveTicket();
+      _subscribeScheduleFeed();
       _error = null;
       return true;
     } on PostgrestException catch (error) {
@@ -155,14 +211,41 @@ class QueueProvider extends ChangeNotifier {
     return _repository.fetchTicketDetail(ticketId);
   }
 
+  RealtimeChannel subscribeToTicketEvents({
+    required String ticketId,
+    required void Function() onChanged,
+  }) {
+    return _repository.subscribeToTicketEvents(
+      ticketId: ticketId,
+      onChanged: onChanged,
+    );
+  }
+
+  Future<void> unsubscribe(RealtimeChannel channel) {
+    return _repository.unsubscribe(channel);
+  }
+
+  Future<void> refreshSchedules() async {
+    try {
+      _schedules = await _repository.fetchSchedules();
+      _lastScheduleSyncedAt = DateTime.now();
+      _error = null;
+      notifyListeners();
+    } catch (_) {
+      // Schedule realtime refresh is best-effort; manual refresh still reports errors.
+    }
+  }
+
   Future<void> _maybeNotify(
     QueueTicketDetail ticket,
     String? previousStatus,
   ) async {
-    if (ticket.remainingBeforeMe <= 3 &&
+    final nearKey = '${ticket.ticketId}:${ticket.remainingBeforeMe}';
+    if (ticket.remainingBeforeMe > 0 &&
+        ticket.remainingBeforeMe <= 3 &&
         ticket.status == 'waiting' &&
-        _notifiedTicketId != ticket.ticketId) {
-      _notifiedTicketId = ticket.ticketId;
+        _lastNearNotificationKey != nearKey) {
+      _lastNearNotificationKey = nearKey;
       await NotificationService.instance.showQueueNear(
         queueCode: ticket.queueCode,
         remaining: ticket.remainingBeforeMe,
@@ -180,8 +263,16 @@ class QueueProvider extends ChangeNotifier {
         await NotificationService.instance.showQueueSkipped(
           queueCode: ticket.queueCode,
         );
+      case 'missed':
+        await NotificationService.instance.showQueueMissed(
+          queueCode: ticket.queueCode,
+        );
       case 'cancelled':
         await NotificationService.instance.showQueueCancelled(
+          queueCode: ticket.queueCode,
+        );
+      case 'expired':
+        await NotificationService.instance.showQueueExpired(
           queueCode: ticket.queueCode,
         );
     }
@@ -189,15 +280,30 @@ class QueueProvider extends ChangeNotifier {
 
   void _subscribeActiveTicket() {
     final ticket = _activeTicket;
-    final previous = _channel;
+    final previous = _activeTicketChannel;
     if (previous != null) {
       _repository.unsubscribe(previous);
     }
-    _channel = null;
+    _activeTicketChannel = null;
     if (ticket == null || !ticket.isActive) return;
-    _channel = _repository.subscribeToTicket(
+    _activeTicketChannel = _repository.subscribeToTicket(
       ticket: ticket,
       onChanged: refreshActiveTicket,
+    );
+  }
+
+  void _subscribeScheduleFeed() {
+    if (_scheduleFeedChannel != null) return;
+    _scheduleFeedChannel = _repository.subscribeToScheduleFeed(
+      onChanged: _scheduleRealtimeChanged,
+    );
+  }
+
+  void _scheduleRealtimeChanged() {
+    _scheduleRefreshDebounce?.cancel();
+    _scheduleRefreshDebounce = Timer(
+      const Duration(milliseconds: 450),
+      refreshSchedules,
     );
   }
 
@@ -219,13 +325,13 @@ class QueueProvider extends ChangeNotifier {
     }
     if (lower.contains('schedule date has passed') ||
         lower.contains('during schedule time')) {
-      return 'Jam praktik sudah selesai. Antrean hanya bisa diambil saat jadwal berlangsung.';
+      return 'Jam praktik sudah selesai. Antrean hanya bisa diambil pada hari layanan sebelum jam praktik berakhir.';
     }
     if (lower.contains('service date')) {
       return 'Antrean hanya bisa diambil pada tanggal layanan.';
     }
     if (lower.contains('has not started')) {
-      return 'Jadwal praktik belum mulai. Silakan kembali sesuai jam layanan.';
+      return 'Jadwal praktik belum mulai. Nomor antrean hari ini tetap bisa diambil jika sesi sudah dibuka klinik.';
     }
     if (lower.contains('branch is not active') ||
         lower.contains('polyclinic is not active') ||
@@ -246,16 +352,21 @@ class QueueProvider extends ChangeNotifier {
     }
     if (lower.contains('row-level security') ||
         lower.contains('violates row-level')) {
-      return 'Akses data antrean ditolak oleh policy Supabase.';
+      return 'Akses data antrean belum tersedia untuk akun ini. Silakan masuk ulang atau hubungi petugas.';
     }
     return message;
   }
 
   @override
   void dispose() {
-    final channel = _channel;
-    if (channel != null) {
-      _repository.unsubscribe(channel);
+    _scheduleRefreshDebounce?.cancel();
+    final activeTicketChannel = _activeTicketChannel;
+    if (activeTicketChannel != null) {
+      _repository.unsubscribe(activeTicketChannel);
+    }
+    final scheduleFeedChannel = _scheduleFeedChannel;
+    if (scheduleFeedChannel != null) {
+      _repository.unsubscribe(scheduleFeedChannel);
     }
     super.dispose();
   }

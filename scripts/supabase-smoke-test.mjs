@@ -16,8 +16,8 @@ const env = {
   adminPassword: requiredEnv('ANTRIMEDIS_ADMIN_PASSWORD'),
   patientEmail:
     process.env.ANTRIMEDIS_PATIENT_EMAIL ||
-    `patient.${Date.now()}@antrimedis.test`,
-  patientPassword: process.env.ANTRIMEDIS_PATIENT_PASSWORD || 'Patient123!',
+    `patient.antrimedis+${Date.now()}@gmail.com`,
+  patientPassword: process.env.ANTRIMEDIS_PATIENT_PASSWORD || 'PatientMedis2026!',
 };
 
 const demoBranchId = '22222222-2222-2222-2222-222222222222';
@@ -41,10 +41,13 @@ try {
   const availableSchedules = await restGet(
     env.anonKey,
     patientSession.access_token,
-    '/v_schedule_availability?select=*&status=eq.open&remaining_quota=gt.0&order=start_time.asc&limit=1',
+    '/v_schedule_availability?select=*&status=eq.open&is_takeable=eq.true&order=start_time.asc&limit=1',
   );
 
-  assert(Array.isArray(availableSchedules) && availableSchedules.length > 0, 'No open schedule found.');
+  assert(
+    Array.isArray(availableSchedules) && availableSchedules.length > 0,
+    'No takeable schedule found. Run during an open schedule window or create an active schedule for the current Jakarta time.',
+  );
   const schedule = availableSchedules[0];
   assert(schedule.queue_session_id, 'Open schedule has no queue_session_id.');
   logOk(`Using ${schedule.polyclinic_name} / ${schedule.doctor_name} (${schedule.queue_session_id})`);

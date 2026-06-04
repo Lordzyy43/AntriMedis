@@ -80,7 +80,10 @@ Untuk AntriMedis saat ini, yang paling penting adalah:
 - `docs/prd.md`
 - `docs/prd_status_roadmap.md`
 - `docs/current_project_snapshot.md`
+- `docs/queue_business_flow.md`
+- `docs/user_side_db_fields.md`
 - `docs/documentation_strategy.md`
+- `supabase/README.md`
 - nanti tambahkan `docs/qa_checklist.md`
 - nanti tambahkan `docs/release_checklist.md`
 
@@ -93,10 +96,11 @@ docs/
   prd.md
   prd_status_roadmap.md
   current_project_snapshot.md
+  queue_business_flow.md
+  user_side_db_fields.md
   documentation_strategy.md
   qa_checklist.md
   release_checklist.md
-  user_side_db_fields.md
   adr/
     0001-use-supabase.md
     0002-single-clinic-mvp.md
@@ -111,16 +115,20 @@ Tidak semua harus dibuat sekarang. Buat ketika mulai dibutuhkan agar dokumentasi
 Gunakan aturan sederhana ini:
 
 1. Kalau mengubah behavior produk, update PRD atau status roadmap.
-2. Kalau mengubah flow QA, update QA checklist.
-3. Kalau mengubah setup/env/deploy, update README atau release checklist.
-4. Kalau mengambil keputusan arsitektur besar, buat ADR.
-5. Kalau hanya refactor kecil tanpa perubahan behavior, tidak wajib update docs.
+2. Kalau mengubah logic antrean, update `queue_business_flow.md`.
+3. Kalau mengubah field/read model user side, update `user_side_db_fields.md`.
+4. Kalau mengubah flow QA, update QA checklist atau section checklist di `queue_business_flow.md`.
+5. Kalau mengubah setup/env/deploy/Supabase seed, update README atau release checklist.
+6. Kalau mengambil keputusan arsitektur besar, buat ADR.
+7. Kalau hanya refactor kecil tanpa perubahan behavior, tidak wajib update docs.
 
 Contoh penerapan:
 
 | Perubahan | Dokumen yang diupdate |
 | --- | --- |
 | Tambah RPC `cancel_my_ticket` | `prd_status_roadmap.md`, optional `database_hardening.md` |
+| Ubah batas jam ambil antrean | `queue_business_flow.md`, `prd_status_roadmap.md`, snapshot |
+| Tambah field read model pasien | `user_side_db_fields.md` |
 | Ganti package name Android | `release_checklist.md`, README |
 | Tambah FCM | PRD, technical docs, release checklist |
 | Tambah global clinic picker | PRD dan roadmap |
@@ -147,6 +155,9 @@ Untuk AntriMedis:
 - `docs/prd.md` tetap menjadi dokumen produk utama.
 - `docs/prd_status_roadmap.md` menjadi dokumen kondisi project dan next step.
 - `docs/current_project_snapshot.md` menjadi ringkasan cepat kondisi project saat ini.
+- `docs/queue_business_flow.md` menjadi source of truth business logic antrean.
+- `docs/user_side_db_fields.md` menjadi peta read model untuk mobile pasien.
+- `supabase/README.md` menjadi runbook setup, seed, dan backend note.
 - Dokumen baru dibuat hanya jika punya fungsi berbeda, seperti QA checklist atau release checklist.
 
 Pola ini paling mendekati praktik production karena memisahkan requirement, implementation status, technical decision, dan release process.

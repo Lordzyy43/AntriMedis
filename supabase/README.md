@@ -49,10 +49,53 @@ Branch   : Cabang Utama Patrang
 Title    : Koordinator Front Office
 ```
 
+Current QA patient for mobile/web patient login:
+
+```txt
+Email    : pasien1@antrimedis.test
+Password : PatientMedis2026!
+Role     : patient
+```
+
+Easy QA patient pool:
+
+```txt
+pasien1@antrimedis.test
+pasien2@antrimedis.test
+pasien3@antrimedis.test
+pasien4@antrimedis.test
+pasien5@antrimedis.test
+pasien6@antrimedis.test
+pasien7@antrimedis.test
+pasien8@antrimedis.test
+pasien9@antrimedis.test
+pasien10@antrimedis.test
+
+Password for all: PatientMedis2026!
+```
+
 To reset operational data and reseed the professional demo clinic dataset, run:
 
 ```bash
 supabase db query --linked --file supabase/patches/20260528_clean_professional_demo_seed.sql
+```
+
+To reset only operational queue data while keeping master data, run:
+
+```bash
+supabase db query --linked --file supabase/patches/20260604_reset_operational_data_keep_master.sql
+```
+
+This keeps:
+
+```txt
+clinics, branches, staff, roles, doctors, polyclinics, users, and patient profiles
+```
+
+It clears:
+
+```txt
+doctor_schedules, queue_sessions, queue_tickets, queue_events, and queue notifications
 ```
 
 To create an admin:
@@ -102,9 +145,25 @@ Cabang Utama Patrang
 0 notifications awal
 ```
 
-Patient accounts are intentionally not seeded. Use the currently logged-in mobile user to take a queue number, so tracking/progress belongs to the real test account instead of a demo patient.
+The professional clinic dataset itself starts with no queue tickets, events, or notifications. Use the QA patient above, or a freshly registered patient account, to take a queue number so tracking/progress belongs to the user currently under test.
 
 Use `v_schedule_availability` to list available schedules in the mobile app.
+
+## Operational Data Reset
+
+To clear schedules, queue sessions, tickets, queue events, and queue notifications while keeping doctors, polyclinics, users, roles, clinic, and branch data, use the reset SQL documented in:
+
+```txt
+../docs/queue_business_flow.md
+```
+
+This is useful when the admin wants to create fresh schedules manually before testing the queue flow again.
+
+The ready-to-run version is available at:
+
+```txt
+supabase/patches/20260604_reset_operational_data_keep_master.sql
+```
 
 ## Current Backend Notes
 
@@ -114,7 +173,9 @@ Important RPCs:
 create_queue_ticket
 cancel_my_ticket
 call_next_queue
+recall_missed_queue
 update_queue_status
+close_queue_session
 create_schedule_with_session
 update_schedule_with_session
 delete_schedule_if_empty
@@ -130,4 +191,31 @@ v_queue_ticket_details
 v_queue_event_feed
 ```
 
+Realtime publication currently includes:
+
+```txt
+queue_tickets
+queue_sessions
+doctor_schedules
+queue_events
+notifications
+```
+
+Current queue business rules:
+
+- AntriMedis is a same-day queue system, not future booking.
+- Patients can take a number before schedule start time on the service date.
+- Patients cannot take a number exactly at or after schedule end time.
+- Staff cannot call before schedule start time.
+- Staff can keep draining existing waiting queues at or after schedule end time.
+- Missed queues are recalled with the same number after regular waiting queues are finished.
+- Closing a session changes remaining `waiting` to `expired` and `missed` to `skipped`.
+- Quota is based on tickets taken except `cancelled`; completed tickets do not restore quota.
+
 For the latest project status, see `../docs/prd_status_roadmap.md` and `../docs/current_project_snapshot.md`.
+
+For queue business rules, status lifecycle, realtime expectations, edge cases, and manual QA checklist, see:
+
+```txt
+../docs/queue_business_flow.md
+```

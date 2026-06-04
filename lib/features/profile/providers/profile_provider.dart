@@ -71,7 +71,7 @@ class ProfileProvider extends ChangeNotifier {
       if (message.contains('row-level security') ||
           message.contains('violates row-level')) {
         _error =
-            'Profil belum bisa dibuat ulang karena policy Supabase belum aktif. Jalankan patch profile self-recovery di SQL Editor.';
+            'Profil belum bisa dipulihkan otomatis. Silakan masuk ulang atau hubungi petugas.';
       } else {
         _error = error.message;
       }

@@ -25,8 +25,8 @@ class NotificationService {
   }) async {
     const android = AndroidNotificationDetails(
       'queue_updates',
-      'Queue updates',
-      channelDescription: 'Notifications for AntriMedis queue progress',
+      'Pembaruan antrean',
+      channelDescription: 'Notifikasi perkembangan antrean AntriMedis',
       importance: Importance.high,
       priority: Priority.high,
     );
@@ -55,11 +55,28 @@ class NotificationService {
     );
   }
 
+  Future<void> showQueueMissed({required String queueCode}) async {
+    await _showQueueNotification(
+      id: Object.hash(queueCode, 'missed'),
+      title: 'Nomor antrean terlewat',
+      body:
+          'Nomor $queueCode terlewat. Tunggu panggil ulang setelah antrean reguler selesai.',
+    );
+  }
+
   Future<void> showQueueCancelled({required String queueCode}) async {
     await _showQueueNotification(
       id: Object.hash(queueCode, 'cancelled'),
       title: 'Antrean dibatalkan',
       body: 'Nomor $queueCode sudah dibatalkan.',
+    );
+  }
+
+  Future<void> showQueueExpired({required String queueCode}) async {
+    await _showQueueNotification(
+      id: Object.hash(queueCode, 'expired'),
+      title: 'Antrean kedaluwarsa',
+      body: 'Nomor $queueCode tidak lagi aktif karena sesi layanan ditutup.',
     );
   }
 
@@ -70,8 +87,8 @@ class NotificationService {
   }) async {
     const android = AndroidNotificationDetails(
       'queue_updates',
-      'Queue updates',
-      channelDescription: 'Notifications for AntriMedis queue progress',
+      'Pembaruan antrean',
+      channelDescription: 'Notifikasi perkembangan antrean AntriMedis',
       importance: Importance.high,
       priority: Priority.high,
     );

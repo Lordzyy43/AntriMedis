@@ -8,6 +8,7 @@ class QueueTicketDetail {
     required this.statusReason,
     required this.cancelReason,
     required this.estimatedWaitMinutes,
+    required this.remainingBeforeMeCount,
     required this.createdAt,
     required this.calledAt,
     required this.servingStartedAt,
@@ -35,6 +36,7 @@ class QueueTicketDetail {
   final String? statusReason;
   final String? cancelReason;
   final int estimatedWaitMinutes;
+  final int? remainingBeforeMeCount;
   final DateTime createdAt;
   final DateTime? calledAt;
   final DateTime? servingStartedAt;
@@ -54,6 +56,8 @@ class QueueTicketDetail {
   final String? specialization;
 
   int get remainingBeforeMe {
+    final fromBackend = remainingBeforeMeCount;
+    if (fromBackend != null) return fromBackend.clamp(0, queueNumber);
     return (queueNumber - currentNumber - 1).clamp(0, queueNumber);
   }
 
@@ -62,8 +66,24 @@ class QueueTicketDetail {
     return (currentNumber / queueNumber).clamp(0, 1).toDouble();
   }
 
-  bool get isActive => ['waiting', 'called', 'serving'].contains(status);
+  bool get isActive =>
+      ['waiting', 'called', 'serving', 'missed'].contains(status);
   bool get canCancel => status == 'waiting';
+  String get waitEstimateLabel {
+    if (status == 'called') return 'Dipanggil';
+    if (status == 'serving') return 'Dilayani';
+    if (status == 'missed') return 'Panggil ulang';
+    if (estimatedWaitMinutes <= 0) return 'Segera';
+    return '~ $estimatedWaitMinutes menit';
+  }
+
+  String get remainingBeforeMeLabel {
+    if (status == 'called') return 'Giliran Anda';
+    if (status == 'serving') return 'Dilayani';
+    if (status == 'missed') return 'Menunggu panggil ulang';
+    if (remainingBeforeMe <= 0) return 'Siap dipanggil';
+    return '$remainingBeforeMe antrean lagi';
+  }
 
   factory QueueTicketDetail.fromJson(Map<String, dynamic> json) {
     return QueueTicketDetail(
@@ -75,6 +95,7 @@ class QueueTicketDetail {
       statusReason: json['status_reason'] as String?,
       cancelReason: json['cancel_reason'] as String?,
       estimatedWaitMinutes: json['estimated_wait_minutes'] as int,
+      remainingBeforeMeCount: json['remaining_before_me'] as int?,
       createdAt: DateTime.parse(json['created_at'] as String),
       calledAt: _parseNullableDate(json['called_at']),
       servingStartedAt: _parseNullableDate(json['serving_started_at']),

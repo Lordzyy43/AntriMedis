@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/config/app_colors.dart';
 import '../../../../core/config/app_spacing.dart';
@@ -23,208 +22,434 @@ class ScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final date = DateFormat('dd MMM yyyy').format(schedule.scheduleDate);
-    final serviceColor = _serviceColor(schedule.queuePrefix);
-    final quotaProgress = schedule.quotaLimit == 0
-        ? 0.0
-        : (schedule.totalTaken / schedule.quotaLimit).clamp(0.0, 1.0);
-    final isUnavailable = !schedule.canTakeQueue;
+    final status = _statusVisual(schedule);
+    final quotaProgress = schedule.quotaUsageRatio;
 
     return AppCard(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: serviceColor.$2,
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    border: Border.all(
-                      color: serviceColor.$1.withValues(alpha: 0.18),
-                    ),
-                  ),
-                  child: Text(
-                    schedule.queuePrefix,
-                    style: TextStyle(
-                      color: serviceColor.$1,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        schedule.polyclinicName,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        schedule.doctorName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontWeight: FontWeight.w800,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _DoctorAvatar(
+                prefix: schedule.queuePrefix,
+                color: status.color,
+                backgroundColor: status.backgroundColor,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            schedule.doctorName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                         ),
-                      ),
-                      if (schedule.specialization != null) ...[
-                        const SizedBox(height: 3),
+                        const SizedBox(width: AppSpacing.sm),
+                        _StatusBadge(status: status),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            schedule.polyclinicName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
                         Text(
-                          schedule.specialization!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12,
+                          schedule.operationalPhaseLabel,
+                          style: TextStyle(
+                            color: status.color,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ],
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _MetaItem(
+                            icon: Icons.schedule_outlined,
+                            label: '${schedule.startTime}-${schedule.endTime}',
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: _MetaItem(
+                            icon: Icons.timer_outlined,
+                            label:
+                                '${schedule.averageServiceMinutes} mnt/pasien',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                isUnavailable
-                    ? _AvailabilityBadge(reason: schedule.availabilityReason)
-                    : _QuotaBadge(remaining: schedule.remainingQuota),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: _InsightTile(
+                  icon: Icons.timelapse_outlined,
+                  label: 'Estimasi awal',
+                  value: schedule.estimatedFirstWaitLabel,
+                  color: AppColors.secondary,
+                  backgroundColor: AppColors.secondarySoft,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _InsightTile(
+                  icon: Icons.format_list_numbered_outlined,
+                  label: 'Nomor terakhir',
+                  value: schedule.lastNumber <= 0
+                      ? '-'
+                      : '${schedule.queuePrefix}${schedule.lastNumber.toString().padLeft(3, '0')}',
+                  color: AppColors.primaryDark,
+                  backgroundColor: AppColors.primarySoft,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
               color: AppColors.surfaceMuted,
               borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.location_on_outlined, size: 18),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    schedule.branchName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                const Icon(Icons.schedule_outlined, size: 18),
-                const SizedBox(width: AppSpacing.xs),
-                Text('${schedule.startTime}-${schedule.endTime}'),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.md,
-              AppSpacing.lg,
-              AppSpacing.lg,
+              border: Border.all(color: AppColors.border),
             ),
             child: Column(
               children: [
                 Row(
                   children: [
-                    AppBadge(
-                      label: date,
-                      icon: Icons.event_available_outlined,
-                      color: AppColors.primaryDark,
-                      backgroundColor: AppColors.primarySoft,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
-                      child: AppBadge(
-                        label:
-                            '± ${schedule.averageServiceMinutes} mnt / pasien',
-                        icon: Icons.timer_outlined,
-                        color: AppColors.violet,
-                        backgroundColor: AppColors.violetSoft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Sisa ${schedule.remainingQuota}/${schedule.quotaLimit}',
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${schedule.totalTaken} nomor sudah masuk',
+                            style: const TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Text(
+                        '${(quotaProgress * 100).round()}%',
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.sm),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
-                    minHeight: 8,
+                    minHeight: 7,
                     value: quotaProgress,
-                    color: schedule.remainingQuota <= 5
+                    color: schedule.remainingQuota <= 2
                         ? AppColors.warning
                         : AppColors.primary,
                     backgroundColor: AppColors.border,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                if (isUnavailable) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.warningSoft.withValues(alpha: 0.72),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.16),
+                _GuidancePanel(schedule: schedule, status: status),
+                if (schedule.canTakeQueue &&
+                    schedule.availabilityReason != 'Siap diambil') ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: AppColors.primaryDark,
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.info_outline,
-                          size: 18,
-                          color: AppColors.warning,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            schedule.availabilityReason,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w800,
-                              height: 1.25,
-                            ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(
+                        child: Text(
+                          schedule.availabilityReason,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.primaryDark,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                ],
+                if (!schedule.canTakeQueue) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      Icon(status.icon, size: 16, color: status.color),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(
+                        child: Text(
+                          schedule.availabilityReason,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: status.color,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            width: double.infinity,
+            child: schedule.canTakeQueue
+                ? FilledButton.icon(
+                    onPressed: isDisabled ? null : onTakeQueue,
+                    icon: const Icon(Icons.confirmation_number_outlined),
+                    label: Text(disabledLabel ?? 'Ambil Antrean'),
+                  )
+                : OutlinedButton.icon(
+                    onPressed: isDisabled ? null : onTakeQueue,
+                    icon: Icon(status.icon),
+                    label: Text(
+                      disabledLabel ?? status.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                ],
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Diambil ${schedule.totalTaken}/${schedule.quotaLimit}',
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 170,
-                      child: ElevatedButton.icon(
-                        onPressed: isDisabled ? null : onTakeQueue,
-                        icon: const Icon(Icons.confirmation_number_outlined),
-                        label: Text(
-                          disabledLabel ?? 'Ambil Nomor',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  _ScheduleStatusVisual _statusVisual(ScheduleAvailability schedule) {
+    if (schedule.canTakeQueue) {
+      return const _ScheduleStatusVisual(
+        label: 'Siap Diambil',
+        icon: Icons.task_alt_outlined,
+        color: AppColors.success,
+        backgroundColor: AppColors.successSoft,
+      );
+    }
+
+    final reason = schedule.availabilityReason.toLowerCase();
+    if (reason.contains('kuota')) {
+      return const _ScheduleStatusVisual(
+        label: 'Penuh',
+        icon: Icons.groups_2_outlined,
+        color: AppColors.textMuted,
+        backgroundColor: AppColors.surfaceMuted,
+      );
+    }
+    if (reason.contains('selesai') || reason.contains('lewat')) {
+      return const _ScheduleStatusVisual(
+        label: 'Selesai',
+        icon: Icons.event_busy_outlined,
+        color: AppColors.textMuted,
+        backgroundColor: AppColors.surfaceMuted,
+      );
+    }
+    return _ScheduleStatusVisual(
+      label: schedule.availabilityReason,
+      icon: Icons.lock_clock_outlined,
+      color: AppColors.warning,
+      backgroundColor: AppColors.warningSoft,
+    );
+  }
+}
+
+class _DoctorAvatar extends StatelessWidget {
+  const _DoctorAvatar({
+    required this.prefix,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  final String prefix;
+  final Color color;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const Icon(Icons.person_outline, color: AppColors.textMuted),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 20,
+              height: 20,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.surface, width: 2),
+              ),
+              child: Text(
+                prefix,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status});
+
+  final _ScheduleStatusVisual status;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 110),
+      child: AppBadge(
+        label: status.label,
+        icon: status.icon,
+        color: status.color,
+        backgroundColor: status.backgroundColor,
+      ),
+    );
+  }
+}
+
+class _InsightTile extends StatelessWidget {
+  const _InsightTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(icon, color: color, size: 17),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ],
             ),
@@ -233,49 +458,96 @@ class ScheduleCard extends StatelessWidget {
       ),
     );
   }
-
-  (Color, Color) _serviceColor(String prefix) {
-    return switch (prefix) {
-      'G' => (AppColors.secondary, AppColors.secondarySoft),
-      'A' => (AppColors.warning, AppColors.warningSoft),
-      _ => (AppColors.primaryDark, AppColors.primarySoft),
-    };
-  }
 }
 
-class _AvailabilityBadge extends StatelessWidget {
-  const _AvailabilityBadge({required this.reason});
+class _GuidancePanel extends StatelessWidget {
+  const _GuidancePanel({required this.schedule, required this.status});
 
-  final String reason;
+  final ScheduleAvailability schedule;
+  final _ScheduleStatusVisual status;
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 150),
-      child: AppBadge(
-        label: reason,
-        icon: Icons.lock_clock_outlined,
-        color: AppColors.warning,
-        backgroundColor: AppColors.warningSoft,
+    final isReady = schedule.canTakeQueue;
+    final color = isReady ? AppColors.primaryDark : status.color;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isReady ? Icons.check_circle_outline : status.icon,
+            size: 16,
+            color: color,
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(
+            child: Text(
+              schedule.patientGuidance,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isReady ? AppColors.textPrimary : color,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                height: 1.25,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _QuotaBadge extends StatelessWidget {
-  const _QuotaBadge({required this.remaining});
+class _MetaItem extends StatelessWidget {
+  const _MetaItem({required this.icon, required this.label});
 
-  final int remaining;
+  final IconData icon;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return AppBadge(
-      label: 'Sisa $remaining',
-      icon: Icons.people_alt_outlined,
-      color: remaining <= 5 ? AppColors.warning : AppColors.secondary,
-      backgroundColor: remaining <= 5
-          ? AppColors.warningSoft
-          : AppColors.secondarySoft,
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: AppColors.textMuted),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
     );
   }
+}
+
+class _ScheduleStatusVisual {
+  const _ScheduleStatusVisual({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final Color backgroundColor;
 }

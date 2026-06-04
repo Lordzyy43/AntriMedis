@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/config/app_colors.dart';
 import '../../../../core/config/app_spacing.dart';
@@ -13,16 +14,90 @@ import '../../../queue/data/models/queue_ticket_detail.dart';
 import '../../../queue/data/models/queue_ticket_timeline_item.dart';
 import '../../../queue/providers/queue_provider.dart';
 
-class QueueTrackingPage extends StatelessWidget {
+class QueueTrackingPage extends StatefulWidget {
   const QueueTrackingPage({super.key, this.ticket});
 
   final QueueTicketDetail? ticket;
 
   @override
+  State<QueueTrackingPage> createState() => _QueueTrackingPageState();
+}
+
+class _QueueTrackingPageState extends State<QueueTrackingPage> {
+  QueueTicketDetail? _detail;
+  List<QueueTicketTimelineItem>? _timeline;
+  QueueProvider? _queueProvider;
+  RealtimeChannel? _channel;
+  String? _subscribedTicketId;
+  bool _isTimelineLoading = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final queue = context.read<QueueProvider>();
+    _queueProvider = queue;
+    final ticketId = widget.ticket?.ticketId ?? queue.trackingTicket?.ticketId;
+    if (ticketId == null || ticketId == _subscribedTicketId) return;
+
+    _subscribe(ticketId);
+    _loadTicketData(ticketId);
+  }
+
+  Future<void> _subscribe(String ticketId) async {
+    final queue = _queueProvider ?? context.read<QueueProvider>();
+    final previous = _channel;
+    if (previous != null) {
+      await queue.unsubscribe(previous);
+    }
+    _subscribedTicketId = ticketId;
+    _channel = queue.subscribeToTicketEvents(
+      ticketId: ticketId,
+      onChanged: () => _loadTicketData(ticketId),
+    );
+  }
+
+  Future<void> _loadTicketData(String ticketId) async {
+    if (!mounted) return;
+    setState(() => _isTimelineLoading = _timeline == null);
+    try {
+      final queue = context.read<QueueProvider>();
+      final results = await Future.wait([
+        queue.fetchTicketDetail(ticketId),
+        queue.fetchTicketTimeline(ticketId),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _detail = results[0] as QueueTicketDetail;
+        _timeline = results[1] as List<QueueTicketTimelineItem>;
+        _isTimelineLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isTimelineLoading = false);
+    }
+  }
+
+  Future<void> _refresh(QueueTicketDetail selectedTicket) async {
+    if (widget.ticket == null) {
+      await context.read<QueueProvider>().refreshActiveTicket();
+    }
+    await _loadTicketData(selectedTicket.ticketId);
+  }
+
+  @override
+  void dispose() {
+    final channel = _channel;
+    if (channel != null) {
+      _queueProvider?.unsubscribe(channel);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final queue = context.watch<QueueProvider>();
-    final selectedTicket = ticket ?? queue.activeTicket;
-    final isHistoricalDetail = ticket != null;
+    final selectedTicket = _detail ?? widget.ticket ?? queue.trackingTicket;
+    final isHistoricalDetail = widget.ticket != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -31,9 +106,7 @@ class QueueTrackingPage extends StatelessWidget {
       body: selectedTicket == null
           ? const _NoActiveQueueState()
           : RefreshIndicator(
-              onRefresh: isHistoricalDetail
-                  ? () async => queue.fetchTicketDetail(selectedTicket.ticketId)
-                  : queue.refreshActiveTicket,
+              onRefresh: () => _refresh(selectedTicket),
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.lg,
@@ -53,6 +126,7 @@ class QueueTrackingPage extends StatelessWidget {
                     const SizedBox(height: AppSpacing.md),
                   ],
                   _TrackingHero(
+                    ticket: selectedTicket,
                     queueCode: selectedTicket.queueCode,
                     progress: selectedTicket.progress,
                     status: selectedTicket.status,
@@ -60,7 +134,6 @@ class QueueTrackingPage extends StatelessWidget {
                         '${selectedTicket.polyclinicName} - ${selectedTicket.doctorName}',
                     currentNumber: selectedTicket.currentNumber,
                     remaining: selectedTicket.remainingBeforeMe,
-                    waitMinutes: selectedTicket.estimatedWaitMinutes,
                   ),
                   if (!selectedTicket.isActive) ...[
                     const SizedBox(height: AppSpacing.md),
@@ -79,9 +152,8 @@ class QueueTrackingPage extends StatelessWidget {
                     const _LiveEstimateNotice(),
                     const SizedBox(height: AppSpacing.md),
                     _MetricGrid(
+                      ticket: selectedTicket,
                       currentNumber: selectedTicket.currentNumber,
-                      remaining: selectedTicket.remainingBeforeMe,
-                      waitMinutes: selectedTicket.estimatedWaitMinutes,
                       lastNumber: selectedTicket.lastNumber,
                     ),
                   ],
@@ -95,32 +167,17 @@ class QueueTrackingPage extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: AppSpacing.md),
-                        FutureBuilder<List<QueueTicketTimelineItem>>(
-                          future: context
-                              .read<QueueProvider>()
-                              .fetchTicketTimeline(selectedTicket.ticketId),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Text(
+                        _isTimelineLoading
+                            ? const Text(
                                 'Memuat timeline...',
                                 style: TextStyle(
                                   color: AppColors.textMuted,
                                   fontWeight: FontWeight.w700,
                                 ),
-                              );
-                            }
-
-                            final events = snapshot.data ?? [];
-                            if (events.isEmpty) {
-                              return _FallbackTicketTimeline(
-                                ticket: selectedTicket,
-                              );
-                            }
-
-                            return _QueueEventTimeline(events: events);
-                          },
-                        ),
+                              )
+                            : (_timeline ?? []).isEmpty
+                            ? _FallbackTicketTimeline(ticket: selectedTicket)
+                            : _QueueEventTimeline(events: _timeline!),
                       ],
                     ),
                   ),
@@ -180,7 +237,7 @@ class QueueTrackingPage extends StatelessWidget {
         return AlertDialog(
           title: const Text('Batalkan antrean?'),
           content: const Text(
-            'Aksi ini hanya membatalkan antrean dari sisi pasien saat status masih menunggu. Nomor antrean yang dibatalkan tidak bisa digunakan kembali.',
+            'Antrean yang sudah dibatalkan tidak bisa dipakai kembali. Anda masih bisa mengambil nomor baru jika jadwal dan kuota tersedia.',
           ),
           actions: [
             TextButton(
@@ -189,7 +246,7 @@ class QueueTrackingPage extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Batalkan Antrean Saya'),
+              child: const Text('Batalkan Antrean'),
             ),
           ],
         );
@@ -323,8 +380,10 @@ class _FinalResultPanel extends StatelessWidget {
 
   _FinalCopy _copyFor(QueueTicketDetail ticket) {
     final reason = ticket.statusReason?.toLowerCase() ?? '';
-    final byPatient =
-        reason.contains('pasien') || reason.contains('oleh anda');
+    final byPatient = reason.contains('pasien') || reason.contains('oleh anda');
+    final byClosedSession =
+        reason.contains('sesi ditutup') ||
+        reason.contains('sesi layanan telah ditutup');
 
     return switch (ticket.status) {
       'completed' => const _FinalCopy(
@@ -345,10 +404,11 @@ class _FinalResultPanel extends StatelessWidget {
         message:
             'Nomor Anda dilewati oleh petugas. Lihat catatan status dan hubungi petugas bila perlu.',
       ),
-      'expired' => const _FinalCopy(
-        title: 'Antrean kedaluwarsa',
-        message:
-            'Antrean ini sudah melewati batas operasional dan tidak lagi aktif.',
+      'expired' => _FinalCopy(
+        title: byClosedSession ? 'Sesi layanan ditutup' : 'Antrean kedaluwarsa',
+        message: byClosedSession
+            ? 'Sesi layanan ditutup sebelum nomor Anda dipanggil. Nomor ini tidak lagi aktif dan tersimpan di riwayat.'
+            : 'Antrean ini sudah melewati batas operasional dan tidak lagi aktif.',
       ),
       _ => const _FinalCopy(
         title: 'Antrean final',
@@ -457,27 +517,32 @@ class _LiveEstimateNotice extends StatelessWidget {
 
 class _TrackingHero extends StatelessWidget {
   const _TrackingHero({
+    required this.ticket,
     required this.queueCode,
     required this.progress,
     required this.status,
     required this.title,
     required this.currentNumber,
     required this.remaining,
-    required this.waitMinutes,
   });
 
+  final QueueTicketDetail ticket;
   final String queueCode;
   final double progress;
   final String status;
   final String title;
   final int currentNumber;
   final int remaining;
-  final int waitMinutes;
 
   @override
   Widget build(BuildContext context) {
     final style = queueStatusStyle(status);
-    final isActive = ['waiting', 'called', 'serving'].contains(status);
+    final isActive = [
+      'waiting',
+      'called',
+      'serving',
+      'missed',
+    ].contains(status);
 
     return AppCard(
       padding: EdgeInsets.zero,
@@ -557,7 +622,7 @@ class _TrackingHero extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          isActive ? '$remaining antrean lagi' : 'Riwayat',
+                          isActive ? ticket.remainingBeforeMeLabel : 'Riwayat',
                           style: const TextStyle(
                             color: AppColors.textMuted,
                             fontSize: 12,
@@ -592,7 +657,7 @@ class _TrackingHero extends StatelessWidget {
                       Expanded(
                         child: _HeroMiniStat(
                           label: 'Perkiraan',
-                          value: '~ $waitMinutes mnt',
+                          value: ticket.waitEstimateLabel,
                         ),
                       ),
                     ],
@@ -611,6 +676,8 @@ class _TrackingHero extends StatelessWidget {
       'waiting' => 'Pantau nomor berjalan dan bersiap mendekati giliran.',
       'called' => 'Nomor Anda sedang dipanggil. Segera menuju poli.',
       'serving' => 'Anda sedang dilayani oleh petugas klinik.',
+      'missed' =>
+        'Nomor Anda terlewat. Tunggu petugas memanggil ulang setelah antrean reguler selesai.',
       'completed' => 'Kunjungan selesai. Terima kasih.',
       'skipped' => 'Nomor Anda dilewati oleh petugas klinik.',
       'cancelled' => 'Antrean ini sudah dibatalkan.',
@@ -665,15 +732,13 @@ class _HeroMiniStat extends StatelessWidget {
 
 class _MetricGrid extends StatelessWidget {
   const _MetricGrid({
+    required this.ticket,
     required this.currentNumber,
-    required this.remaining,
-    required this.waitMinutes,
     required this.lastNumber,
   });
 
+  final QueueTicketDetail ticket;
   final int currentNumber;
-  final int remaining;
-  final int waitMinutes;
   final int lastNumber;
 
   @override
@@ -705,14 +770,14 @@ class _MetricGrid extends StatelessWidget {
         _MetricCard(
           icon: Icons.people_alt_outlined,
           label: 'Sisa antrean',
-          value: remaining.toString(),
+          value: ticket.remainingBeforeMeLabel,
           color: AppColors.primaryDark,
           backgroundColor: AppColors.primarySoft,
         ),
         _MetricCard(
           icon: Icons.timer_outlined,
           label: 'Perkiraan',
-          value: '~ $waitMinutes mnt',
+          value: ticket.waitEstimateLabel,
           color: AppColors.violet,
           backgroundColor: AppColors.violetSoft,
         ),
@@ -835,7 +900,12 @@ class _FallbackTicketTimeline extends StatelessWidget {
           icon: Icons.campaign_outlined,
           title: 'Nomor dipanggil',
           subtitle: _formatNullableTime(ticket.calledAt),
-          isActive: ['called', 'serving', 'completed'].contains(ticket.status),
+          isActive: [
+            'called',
+            'serving',
+            'completed',
+            'missed',
+          ].contains(ticket.status),
         ),
         _TimelineStep(
           icon: Icons.medical_services_outlined,
@@ -875,6 +945,7 @@ IconData _iconForStatus(String status) {
     'waiting' => Icons.hourglass_top_rounded,
     'called' => Icons.campaign_outlined,
     'serving' => Icons.medical_services_outlined,
+    'missed' => Icons.replay_outlined,
     'completed' => Icons.check_circle_outline,
     'skipped' => Icons.skip_next_rounded,
     'cancelled' => Icons.cancel_outlined,
@@ -888,6 +959,7 @@ String _labelForStatus(String status) {
     'waiting' => 'Menunggu',
     'called' => 'Dipanggil',
     'serving' => 'Dilayani',
+    'missed' => 'Terlewat',
     'completed' => 'Selesai',
     'skipped' => 'Dilewati',
     'cancelled' => 'Dibatalkan',

@@ -36,6 +36,12 @@ QueueStatusStyle queueStatusStyle(String status) {
       backgroundColor: AppColors.primarySoft,
       icon: Icons.medical_services_outlined,
     ),
+    'missed' => const QueueStatusStyle(
+      label: 'Terlewat',
+      color: AppColors.violet,
+      backgroundColor: AppColors.violetSoft,
+      icon: Icons.replay_outlined,
+    ),
     'completed' => const QueueStatusStyle(
       label: 'Selesai',
       color: AppColors.success,

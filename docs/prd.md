@@ -5,6 +5,7 @@
 **Sistem Antrean Real-Time Klinik & Estimasi Waktu Tunggu**
 
 > Update status implementasi, gap, roadmap terbaru, dan strategi dokumentasi ada di `docs/prd_status_roadmap.md` dan `docs/documentation_strategy.md`.
+> Business logic antrean terbaru menjadi source of truth di `docs/queue_business_flow.md`.
 
 ---
 
@@ -20,8 +21,25 @@
 | Target Pengguna   | Pasien dan Admin Klinik untuk MVP                             |
 | Target Proyek     | UAS Mobile + Portfolio Full-Stack                             |
 | Tingkat Kesulitan | Hard                                                          |
-| Versi Dokumen     | v1.2                                                          |
+| Versi Dokumen     | v1.3                                                          |
 | Status            | Scope MVP satu klinik, UAS-ready beta / production-like MVP   |
+
+### 1.1 Addendum Implementasi Terbaru - 4 Juni 2026
+
+Addendum ini merangkum kondisi implementasi terbaru agar PRD besar tetap sinkron dengan project berjalan:
+
+- Produk adalah sistem antrean hari-H, bukan booking/future appointment.
+- Pasien bisa mengambil nomor sebelum jam mulai pada tanggal layanan, selama waktu sekarang masih sebelum jam selesai.
+- Tepat saat `end_time`, loket online pasien sudah tutup. Contoh jadwal `15:00-18:00`: `17:59` masih boleh, `18:00` sudah ditolak.
+- Admin tidak boleh memanggil sebelum jam mulai, tetapi tetap boleh menghabiskan waiting yang sudah masuk saat atau setelah jam selesai.
+- Status aktif operasional adalah `waiting`, `called`, `serving`, dan `missed`.
+- `missed` berarti pasien tidak hadir saat panggilan pertama dan menunggu recall setelah waiting reguler habis.
+- Recall memakai nomor lama, bukan membuat tiket/nomor baru.
+- Jika pasien tetap tidak hadir setelah recall, status menjadi `skipped` final.
+- Tutup sesi mengubah `waiting` menjadi `expired` dan `missed` menjadi `skipped`.
+- Kuota adalah kapasitas nomor sesi. Kuota turun saat tiket diambil dan tidak naik saat pasien selesai.
+- `cancelled` tidak mengonsumsi kuota aktif, tetapi nomor antrean yang sudah pernah dibuat tetap tidak digunakan ulang.
+- Realtime utama memakai `queue_tickets`, `queue_sessions`, `doctor_schedules`, `queue_events`, dan `notifications`.
 
 ---
 
@@ -675,8 +693,9 @@ Data yang tampil:
 
 1. Setiap jadwal memiliki `quota_limit`.
 2. Pasien tidak bisa mengambil antrean jika kuota penuh.
-3. Antrean `cancelled` tetap tercatat, tetapi dapat dipilih apakah mengurangi kuota atau tidak.
-4. Untuk MVP, `cancelled` tetap dihitung sebagai nomor antrean yang pernah dibuat, tetapi tidak masuk waiting.
+3. Kuota dihitung dari tiket yang sudah diambil selain `cancelled`.
+4. Kuota tidak naik kembali ketika pasien selesai dilayani.
+5. Nomor yang sudah pernah dibuat tetap tidak digunakan ulang walaupun tiket dibatalkan.
 
 ### 12.3 Aturan Antrean Aktif
 
@@ -688,6 +707,7 @@ Status aktif:
 waiting
 called
 serving
+missed
 ```
 
 Status tidak aktif:
