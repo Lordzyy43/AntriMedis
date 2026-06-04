@@ -41,7 +41,9 @@ Dokumen status lengkap ada di [docs/prd_status_roadmap.md](docs/prd_status_roadm
 
 ## Setup
 
-1. Copy env example:
+1. Copy env example menjadi `.env`.
+
+Flutter membaca `.env` sebagai asset aplikasi, jadi file ini wajib ada secara lokal. Jangan rename `.env.example`; gunakan copy supaya template tetap tersedia untuk collaborator.
 
 ```powershell
 Copy-Item .env.example .env
@@ -55,13 +57,27 @@ SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_OAUTH_REDIRECT_URL=antrimedis://login-callback/
 ```
 
-3. Install dependency:
+3. Jika perlu script/smoke test lokal, buat `.env.local` dari `.env`:
+
+```powershell
+Copy-Item .env .env.local
+```
+
+Ringkasnya:
+
+```txt
+.env.example  -> template, ikut GitHub
+.env          -> wajib untuk Flutter, lokal saja
+.env.local    -> opsional untuk script, lokal saja
+```
+
+4. Install dependency:
 
 ```powershell
 flutter pub get
 ```
 
-4. Jalankan app:
+5. Jalankan app:
 
 ```powershell
 flutter run

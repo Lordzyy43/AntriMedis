@@ -91,19 +91,47 @@ git clone https://github.com/Lordzyy43/AntriMedis.git
 cd AntriMedis
 ```
 
-Copy env example:
+### Urutan Setup Environment Mobile
+
+Mobile Flutter memakai file `.env` sebagai asset aplikasi. Karena itu, file `.env` wajib ada di root repository mobile sebelum menjalankan `flutter pub get`, `flutter analyze`, atau `flutter run`.
+
+Urutan yang benar:
+
+1. Biarkan `.env.example` tetap ada sebagai template.
+2. Copy `.env.example` menjadi `.env`.
+3. Isi `.env` dengan Supabase URL dan anon key asli.
+4. Jangan commit `.env`.
+5. Buat `.env.local` hanya jika perlu menjalankan script lokal atau smoke test.
+
+Perbedaan file environment:
+
+```txt
+.env.example  -> template untuk collaborator, boleh commit
+.env          -> env asli untuk Flutter app, wajib ada lokal, jangan commit
+.env.local    -> env lokal untuk script/smoke test, opsional, jangan commit
+```
+
+Copy template menjadi `.env`:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Isi `.env`:
+Isi `.env` dengan nilai asli:
 
 ```txt
 SUPABASE_URL=https://vicwdxxjaoekppembbvt.supabase.co
 SUPABASE_ANON_KEY=isi_anon_or_publishable_key_dari_supabase
 SUPABASE_OAUTH_REDIRECT_URL=antrimedis://login-callback/
 ```
+
+Jika perlu `.env.local` untuk script/smoke test, copy setelah `.env` sudah benar:
+
+```powershell
+Copy-Item .env .env.local
+```
+
+Jangan rename `.env.example` menjadi `.env`. Gunakan copy, supaya `.env.example` tetap tersedia di GitHub sebagai panduan collaborator.
 
 Install dependency:
 
@@ -199,9 +227,18 @@ File `.env.example` boleh diubah jika hanya menambah nama variable tanpa nilai s
 Jika muncul error environment:
 
 - pastikan file `.env` ada di root repository mobile,
+- jika hanya ada `.env.local`, Flutter tetap akan error karena `pubspec.yaml` mendaftarkan `.env` sebagai asset,
+- buat `.env` dengan `Copy-Item .env.example .env` atau `Copy-Item .env.local .env`,
 - pastikan `SUPABASE_URL` benar,
 - pastikan `SUPABASE_ANON_KEY` berasal dari project Supabase yang sama,
 - jalankan ulang app setelah mengubah `.env`.
+
+Jika VS Code menampilkan error `The asset file '.env' doesn't exist`:
+
+- penyebabnya adalah file `.env` belum ada di root mobile,
+- `.env.example` tidak otomatis dibaca Flutter,
+- `.env.local` juga tidak otomatis dibaca Flutter,
+- solusinya buat file `.env`, isi anon key, lalu jalankan `flutter pub get`.
 
 Jika login gagal:
 
