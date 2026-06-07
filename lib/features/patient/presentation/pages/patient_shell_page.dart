@@ -98,7 +98,7 @@ class _FloatingPatientNav extends StatelessWidget {
       const _NavItemData(
         icon: Icons.home_outlined,
         activeIcon: Icons.home_rounded,
-        label: 'Home',
+        label: 'Beranda',
       ),
       const _NavItemData(
         icon: Icons.confirmation_number_outlined,
@@ -120,16 +120,20 @@ class _FloatingPatientNav extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.96),
+        color: AppColors.surfaceOf(context).withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.border.withValues(alpha: 0.85)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1F0F172A),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
+        border: Border.all(
+          color: AppColors.borderOf(context).withValues(alpha: 0.85),
+        ),
+        boxShadow: AppColors.isDark(context)
+            ? const []
+            : const [
+                BoxShadow(
+                  color: Color(0x1F0F172A),
+                  blurRadius: 22,
+                  offset: Offset(0, 10),
+                ),
+              ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(5),
@@ -184,7 +188,9 @@ class _FloatingNavItem extends StatelessWidget {
                 children: [
                   Icon(
                     isSelected ? data.activeIcon : data.icon,
-                    color: isSelected ? Colors.white : AppColors.textMuted,
+                    color: isSelected
+                        ? Colors.white
+                        : AppColors.textMutedOf(context),
                     size: 22,
                   ),
                   if (data.badgeCount > 0)
@@ -202,7 +208,7 @@ class _FloatingNavItem extends StatelessWidget {
                           color: AppColors.danger,
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(
-                            color: AppColors.surface,
+                            color: AppColors.surfaceOf(context),
                             width: 2,
                           ),
                         ),
@@ -223,7 +229,9 @@ class _FloatingNavItem extends StatelessWidget {
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 180),
                 style: TextStyle(
-                  color: isSelected ? Colors.white : AppColors.textMuted,
+                  color: isSelected
+                      ? Colors.white
+                      : AppColors.textMutedOf(context),
                   fontSize: 10,
                   fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
                 ),

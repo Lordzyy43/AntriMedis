@@ -21,28 +21,19 @@ class PatientQueuesPage extends StatelessWidget {
     final historyTickets = queue.historyTickets;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Antrean Saya'),
-        actions: [
-          IconButton(
-            tooltip: 'Muat ulang',
-            onPressed: queue.isLoading
-                ? null
-                : () => context.read<QueueProvider>().refreshTickets(),
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.backgroundOf(context),
       body: RefreshIndicator(
         onRefresh: context.read<QueueProvider>().refreshTickets,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.lg,
-            AppSpacing.sm,
+            AppSpacing.xl,
             AppSpacing.lg,
             104,
           ),
           children: [
+            const _QueuePageHeader(),
+            const SizedBox(height: AppSpacing.xl),
             if (queue.error != null) ...[
               AppErrorBanner(message: queue.error!),
               const SizedBox(height: AppSpacing.lg),
@@ -85,7 +76,7 @@ class PatientQueuesPage extends StatelessWidget {
             else
               ...historyTickets.map(
                 (ticket) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                   child: QueueTicketCard(
                     ticket: ticket,
                     onTap: () => _openTracking(context, ticket),
@@ -99,9 +90,9 @@ class PatientQueuesPage extends StatelessWidget {
   }
 
   void _openTracking(BuildContext context, QueueTicketDetail ticket) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => QueueTrackingPage(ticket: ticket)));
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => QueueTrackingPage(ticket: ticket)),
+    );
   }
 
   Future<void> _confirmCancel(BuildContext context) async {
@@ -129,6 +120,53 @@ class PatientQueuesPage extends StatelessWidget {
 
     if (ok != true || !context.mounted) return;
     await context.read<QueueProvider>().cancelActiveTicket();
+  }
+}
+
+class _QueuePageHeader extends StatelessWidget {
+  const _QueuePageHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: const Icon(
+              Icons.confirmation_number_outlined,
+              color: AppColors.primaryDark,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Antrean Saya',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Pantau tiket aktif dan riwayat antrean klinik.',
+                  style: TextStyle(
+                    color: AppColors.textMutedOf(context),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -173,16 +211,16 @@ class _QueueSummaryCard extends StatelessWidget {
                   activeCode == null
                       ? 'Belum ada antrean aktif'
                       : 'Nomor aktif $activeCode',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryOf(context),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   '$historyCount tiket tersimpan di riwayat',
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
+                  style: TextStyle(
+                    color: AppColors.textMutedOf(context),
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),

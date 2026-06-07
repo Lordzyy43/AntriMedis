@@ -364,11 +364,13 @@ class _LoginHeader extends StatelessWidget {
         Row(
           children: [
             Container(
-              width: 58,
-              height: 58,
+              width: 62,
+              height: 62,
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(AppRadius.xl),
+                color: AppColors.surfaceOf(context),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.borderOf(context)),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x330EA5A4),
@@ -377,14 +379,13 @@ class _LoginHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.local_hospital_rounded,
-                color: Colors.white,
-                size: 30,
+              child: Image.asset(
+                'assets/images/antrimedis_logo.png',
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -392,15 +393,17 @@ class _LoginHeader extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimary,
+                    color: AppColors.textPrimaryOf(context),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 AppBadge(
                   label: 'Antrean aktif',
                   icon: Icons.bolt,
-                  color: AppColors.primaryDark,
-                  backgroundColor: AppColors.primarySoft,
+                  color: AppColors.isDark(context)
+                      ? AppColors.primary
+                      : AppColors.primaryDark,
+                  backgroundColor: AppColors.primarySoftOf(context),
                 ),
               ],
             ),
@@ -412,12 +415,12 @@ class _LoginHeader extends StatelessWidget {
           style: Theme.of(context).textTheme.headlineLarge,
         ),
         const SizedBox(height: AppSpacing.md),
-        const Text(
+        Text(
           'Ambil nomor online, pantau giliran, dan lihat estimasi waktu tunggu dari ponsel Anda.',
           style: TextStyle(
             fontSize: 16,
             height: 1.45,
-            color: AppColors.textMuted,
+            color: AppColors.textMutedOf(context),
           ),
         ),
       ],

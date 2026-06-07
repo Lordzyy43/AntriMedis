@@ -18,28 +18,19 @@ class NotificationsPage extends StatelessWidget {
     final provider = context.watch<NotificationProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifikasi'),
-        actions: [
-          IconButton(
-            tooltip: 'Muat ulang',
-            onPressed: provider.isLoading
-                ? null
-                : () => context.read<NotificationProvider>().load(),
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.backgroundOf(context),
       body: RefreshIndicator(
         onRefresh: context.read<NotificationProvider>().load,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.lg,
-            AppSpacing.sm,
+            AppSpacing.xl,
             AppSpacing.lg,
             104,
           ),
           children: [
+            const _NotificationPageHeader(),
+            const SizedBox(height: AppSpacing.xl),
             if (provider.error != null) ...[
               AppErrorBanner(message: provider.error!),
               const SizedBox(height: AppSpacing.lg),
@@ -63,12 +54,59 @@ class NotificationsPage extends StatelessWidget {
             else
               ...provider.notifications.map(
                 (notification) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                   child: _NotificationCard(notification: notification),
                 ),
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _NotificationPageHeader extends StatelessWidget {
+  const _NotificationPageHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.secondarySoft,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: const Icon(
+              Icons.notifications_outlined,
+              color: AppColors.secondary,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Notifikasi',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Pembaruan antrean tersimpan rapi di sini.',
+                  style: TextStyle(
+                    color: AppColors.textMutedOf(context),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -89,7 +127,9 @@ class _NotificationSummary extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: unread > 0 ? AppColors.primarySoft : AppColors.surfaceMuted,
+              color: unread > 0
+                  ? AppColors.primarySoft
+                  : AppColors.surfaceMuted,
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(
@@ -108,16 +148,16 @@ class _NotificationSummary extends StatelessWidget {
                   unread > 0
                       ? '$unread notifikasi belum dibaca'
                       : 'Semua notifikasi sudah dibaca',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryOf(context),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   '$total pembaruan antrean tersimpan',
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
+                  style: TextStyle(
+                    color: AppColors.textMutedOf(context),
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),

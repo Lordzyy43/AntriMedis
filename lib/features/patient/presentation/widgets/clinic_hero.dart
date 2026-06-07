@@ -47,15 +47,19 @@ class ClinicHero extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      width: 46,
-                      height: 46,
+                      width: 48,
+                      height: 48,
+                      padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: const Icon(
-                        Icons.local_hospital_rounded,
                         color: Colors.white,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Image.asset(
+                        'assets/images/antrimedis_logo.png',
+                        fit: BoxFit.contain,
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
