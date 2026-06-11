@@ -71,7 +71,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEditing ? 'Profil' : 'Lengkapi Profil'),
+        title: Text(widget.isEditing ? '' : 'Lengkapi Profil'),
       ),
       body: SafeArea(
         child: ListView(
