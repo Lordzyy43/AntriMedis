@@ -11,6 +11,8 @@ import '../../../core/widgets/app_error_banner.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../../queue/providers/queue_provider.dart';
+import '../../settings/providers/app_settings_provider.dart';
+import 'app_settings_pages.dart';
 import '../data/models/patient_profile.dart';
 import '../providers/profile_provider.dart';
 
@@ -32,8 +34,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final _pinController = TextEditingController();
+  final _confirmPinController = TextEditingController();
   final _imagePicker = ImagePicker();
 
   DateTime? _birthDate;
@@ -44,8 +46,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _pinController.dispose();
+    _confirmPinController.dispose();
     super.dispose();
   }
 
@@ -69,7 +71,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEditing ? 'Profil' : 'Lengkapi Profil'),
+        title: Text(widget.isEditing ? '' : 'Lengkapi Profil'),
       ),
       body: SafeArea(
         child: ListView(
@@ -224,6 +226,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
               const SizedBox(height: AppSpacing.lg),
               _AccountActionPanel(
                 onChangePassword: _showChangePasswordSheet,
+                onSecurity: _showSecuritySheet,
+                onSupport: _showSupportSheet,
+                onAbout: _showAboutSheet,
                 onSignOut: _confirmSignOut,
                 isLoading: context.watch<AuthProvider>().isLoading,
               ),
@@ -265,104 +270,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   }
 
   Future<void> _showChangePasswordSheet() async {
-    _passwordController.clear();
-    _confirmPasswordController.clear();
-    final formKey = GlobalKey<FormState>();
-
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: AppSpacing.lg,
-            right: AppSpacing.lg,
-            bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
-            top: AppSpacing.sm,
-          ),
-          child: SafeArea(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _CardTitle(
-                    icon: Icons.lock_reset_outlined,
-                    title: 'Ubah Password',
-                    subtitle:
-                        'Gunakan minimal 8 karakter. Password baru akan dipakai saat login berikutnya.',
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password baru',
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                    validator: (value) =>
-                        value == null || value.trim().length < 8
-                        ? 'Password minimal 8 karakter'
-                        : null,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: _confirmPasswordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Ulangi password baru',
-                      prefixIcon: Icon(Icons.lock_person_outlined),
-                    ),
-                    validator: (value) => value != _passwordController.text
-                        ? 'Konfirmasi password belum sama'
-                        : null,
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Batal'),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () {
-                            if (!formKey.currentState!.validate()) return;
-                            Navigator.of(context).pop(true);
-                          },
-                          icon: const Icon(Icons.check_circle_outline),
-                          label: const Text('Simpan'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-
-    if (ok != true || !mounted) return;
-    final saved = await context.read<AuthProvider>().updatePassword(
-      _passwordController.text,
-    );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          saved
-              ? 'Password berhasil diperbarui.'
-              : context.read<AuthProvider>().error ??
-                    'Password belum bisa diperbarui.',
-        ),
-      ),
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ChangePasswordPage()),
     );
   }
 
@@ -541,6 +450,204 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     return 'Avatar belum bisa dipilih. Coba gunakan foto lain atau ulangi beberapa saat lagi.';
   }
 
+  Future<void> _showSecuritySheet() async {
+    final settings = context.read<AppSettingsProvider>();
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _CardTitle(
+                  icon: Icons.privacy_tip_outlined,
+                  title: 'Keamanan dan Privasi',
+                  subtitle:
+                      'Aktifkan PIN agar aplikasi meminta verifikasi sebelum membuka beranda.',
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Consumer<AppSettingsProvider>(
+                  builder: (context, settings, _) {
+                    return _AccountActionTile(
+                      icon: settings.securityEnabled
+                          ? Icons.lock_outline
+                          : Icons.lock_open_outlined,
+                      title: settings.securityEnabled
+                          ? 'PIN keamanan aktif'
+                          : 'PIN keamanan belum aktif',
+                      subtitle: settings.securityEnabled
+                          ? 'Ubah atau matikan PIN keamanan aplikasi.'
+                          : 'Atur PIN 4-6 digit untuk melindungi akses beranda.',
+                      onTap: () => _showPinSetupSheet(),
+                    );
+                  },
+                ),
+                Consumer<AppSettingsProvider>(
+                  builder: (context, settings, _) {
+                    if (!settings.securityEnabled) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      children: [
+                        const Divider(height: 1),
+                        _AccountActionTile(
+                          icon: Icons.no_encryption_outlined,
+                          title: 'Matikan PIN',
+                          subtitle: 'Hapus verifikasi sebelum masuk beranda.',
+                          isDanger: true,
+                          onTap: () async {
+                            await context
+                                .read<AppSettingsProvider>()
+                                .clearSecurityPin();
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('PIN keamanan dinonaktifkan.'),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (!mounted) return;
+    if (settings.securityEnabled) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Keamanan aplikasi aktif.')));
+    }
+  }
+
+  Future<void> _showPinSetupSheet() async {
+    _pinController.clear();
+    _confirmPinController.clear();
+    final formKey = GlobalKey<FormState>();
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: AppSpacing.lg,
+            right: AppSpacing.lg,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+            top: AppSpacing.sm,
+          ),
+          child: SafeArea(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CardTitle(
+                    icon: Icons.pin_outlined,
+                    title: 'Atur PIN Keamanan',
+                    subtitle:
+                        'Gunakan 4-6 digit. PIN ini diminta sebelum membuka beranda.',
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  TextFormField(
+                    controller: _pinController,
+                    obscureText: true,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    decoration: const InputDecoration(
+                      counterText: '',
+                      labelText: 'PIN baru',
+                      prefixIcon: Icon(Icons.pin_outlined),
+                    ),
+                    validator: (value) {
+                      final pin = value?.trim() ?? '';
+                      if (!RegExp(r'^\d{4,6}$').hasMatch(pin)) {
+                        return 'PIN harus 4-6 digit angka';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextFormField(
+                    controller: _confirmPinController,
+                    obscureText: true,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    decoration: const InputDecoration(
+                      counterText: '',
+                      labelText: 'Ulangi PIN',
+                      prefixIcon: Icon(Icons.lock_person_outlined),
+                    ),
+                    validator: (value) => value != _pinController.text
+                        ? 'Konfirmasi PIN belum sama'
+                        : null,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Batal'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            if (!formKey.currentState!.validate()) return;
+                            Navigator.of(context).pop(true);
+                          },
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: const Text('Simpan'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (ok != true || !mounted) return;
+    await context.read<AppSettingsProvider>().setSecurityPin(
+      _pinController.text.trim(),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('PIN keamanan berhasil disimpan.')),
+    );
+  }
+
+  Future<void> _showSupportSheet() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SupportPage()),
+    );
+  }
+
+  Future<void> _showAboutSheet() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AboutMenuPage()),
+    );
+  }
+
   Future<void> _confirmSignOut() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -619,9 +726,11 @@ class _Header extends StatelessWidget {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(AppSpacing.xl),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF075E5D), AppColors.primaryDark],
+                colors: AppColors.isDark(context)
+                    ? const [Color(0xFF0F766E), Color(0xFF134E4A)]
+                    : const [Color(0xFF075E5D), AppColors.primaryDark],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -702,8 +811,10 @@ class _Header extends StatelessWidget {
                     ),
                     Text(
                       '${(completion * 100).round()}%',
-                      style: const TextStyle(
-                        color: AppColors.primaryDark,
+                      style: TextStyle(
+                        color: AppColors.isDark(context)
+                            ? AppColors.primary
+                            : AppColors.primaryDark,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -718,7 +829,7 @@ class _Header extends StatelessWidget {
                     color: profile?.isComplete == true
                         ? AppColors.success
                         : AppColors.primary,
-                    backgroundColor: AppColors.border,
+                    backgroundColor: AppColors.borderOf(context),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -726,8 +837,8 @@ class _Header extends StatelessWidget {
                   isEditing
                       ? 'Perbarui data dan avatar yang digunakan klinik untuk mengenali pasien.'
                       : 'Lengkapi profil pasien sebelum mengambil nomor antrean.',
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
+                  style: TextStyle(
+                    color: AppColors.textMutedOf(context),
                     height: 1.4,
                   ),
                 ),
@@ -934,11 +1045,17 @@ class _CardTitle extends StatelessWidget {
 class _AccountActionPanel extends StatelessWidget {
   const _AccountActionPanel({
     required this.onChangePassword,
+    required this.onSecurity,
+    required this.onSupport,
+    required this.onAbout,
     required this.onSignOut,
     required this.isLoading,
   });
 
   final VoidCallback onChangePassword;
+  final VoidCallback onSecurity;
+  final VoidCallback onSupport;
+  final VoidCallback onAbout;
   final VoidCallback onSignOut;
   final bool isLoading;
 
@@ -949,12 +1066,20 @@ class _AccountActionPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardTitle(
+          const _CardTitle(
             icon: Icons.settings_outlined,
-            title: 'Pengaturan Akun',
-            subtitle: 'Kelola akses akun pasien dan keamanan login.',
+            title: 'Pengaturan Aplikasi',
+            subtitle:
+                'Kelola keamanan, tampilan, bantuan, dan informasi aplikasi.',
           ),
           const SizedBox(height: AppSpacing.lg),
+          _AccountActionTile(
+            icon: Icons.privacy_tip_outlined,
+            title: 'Keamanan dan Privasi',
+            subtitle: 'Atur PIN keamanan sebelum masuk beranda.',
+            onTap: onSecurity,
+          ),
+          const Divider(height: 1),
           _AccountActionTile(
             icon: Icons.lock_reset_outlined,
             title: 'Ubah Password',
@@ -962,12 +1087,71 @@ class _AccountActionPanel extends StatelessWidget {
             onTap: isLoading ? null : onChangePassword,
           ),
           const Divider(height: 1),
+          Consumer<AppSettingsProvider>(
+            builder: (context, settings, _) {
+              return SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.secondarySoftOf(context),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Icon(
+                    settings.isDarkMode
+                        ? Icons.dark_mode_outlined
+                        : Icons.light_mode_outlined,
+                    color: AppColors.secondary,
+                    size: 20,
+                  ),
+                ),
+                title: const Text(
+                  'Tampilan Aplikasi',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+                subtitle: Text(
+                  settings.isDarkMode ? 'Mode gelap' : 'Mode terang',
+                ),
+                value: settings.isDarkMode,
+                onChanged: (value) => settings.setThemeMode(
+                  value ? ThemeMode.dark : ThemeMode.light,
+                ),
+              );
+            },
+          ),
+          const Divider(height: 1),
           _AccountActionTile(
-            icon: Icons.logout,
-            title: 'Keluar',
-            subtitle: 'Tutup sesi akun di perangkat ini.',
-            isDanger: true,
-            onTap: isLoading ? null : onSignOut,
+            icon: Icons.support_agent_outlined,
+            title: 'Bantuan dan Dukungan',
+            subtitle: 'FAQ, WhatsApp klinik, dan laporan bug.',
+            onTap: onSupport,
+          ),
+          const Divider(height: 1),
+          _AccountActionTile(
+            icon: Icons.info_outline,
+            title: 'Tentang Aplikasi',
+            subtitle: 'Tentang aplikasi dan kebijakan privasi.',
+            onTap: onAbout,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Center(
+            child: IconButton(
+              tooltip: 'Keluar',
+              onPressed: isLoading ? null : onSignOut,
+              icon: const Icon(Icons.logout_rounded, color: AppColors.danger),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Center(
+            child: Text(
+              'Versi 1.0.0+1',
+              style: TextStyle(
+                color: AppColors.textMutedOf(context),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
         ],
       ),
@@ -992,7 +1176,11 @@ class _AccountActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDanger ? AppColors.danger : AppColors.primaryDark;
+    final color = isDanger
+        ? AppColors.danger
+        : AppColors.isDark(context)
+        ? AppColors.primary
+        : AppColors.primaryDark;
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
@@ -1000,7 +1188,7 @@ class _AccountActionTile extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: isDanger ? AppColors.dangerSoft : AppColors.primarySoft,
+          color: isDanger ? AppColors.dangerSoft : AppColors.primarySoftOf(context),
           borderRadius: BorderRadius.circular(AppRadius.md),
         ),
         child: Icon(icon, color: color, size: 20),
@@ -1008,7 +1196,7 @@ class _AccountActionTile extends StatelessWidget {
       title: Text(
         title,
         style: TextStyle(
-          color: isDanger ? AppColors.danger : AppColors.textPrimary,
+          color: isDanger ? AppColors.danger : AppColors.textPrimaryOf(context),
           fontWeight: FontWeight.w900,
         ),
       ),

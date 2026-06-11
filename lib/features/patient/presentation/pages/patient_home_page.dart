@@ -53,44 +53,16 @@ class _PatientHomePageState extends State<PatientHomePage> {
     final takeableCount = queue.schedules
         .where((schedule) => schedule.canTakeQueue)
         .length;
+    final inactiveCount = queue.schedules.length - takeableCount;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Beranda'),
-            Text(
-              'Antrean pasien',
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Muat ulang',
-            onPressed: queue.isLoading ? null : queue.loadHome,
-            icon: queue.isLoading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.backgroundOf(context),
       body: RefreshIndicator(
         onRefresh: queue.loadHome,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.lg,
-            AppSpacing.sm,
+            AppSpacing.xl,
             AppSpacing.lg,
             104,
           ),
@@ -99,7 +71,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
               patientName: profile.profile?.fullName,
               clinicName: 'Klinik Sehat Sentosa',
               branchName: clinic?.name ?? 'Cabang Utama',
-              operationalHours: clinic?.operationalHours ?? '08.00-20.00',
+              operationalHours: '24 Jam',
               address:
                   clinic?.fullAddress ??
                   'Ambil nomor antrean poli dan pantau giliran Anda dari ponsel.',
@@ -108,7 +80,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
             _HomeQuickStats(
               scheduleCount: queue.schedules.length,
               takeableCount: takeableCount,
-              activeTicketCode: activeTicket?.queueCode,
+              inactiveCount: inactiveCount,
             ),
             const SizedBox(height: AppSpacing.lg),
             _QueueReadinessBanner(
@@ -118,8 +90,6 @@ class _PatientHomePageState extends State<PatientHomePage> {
               takeableCount: takeableCount,
               scheduleCount: queue.schedules.length,
             ),
-            const SizedBox(height: AppSpacing.lg),
-            _TodayOperationsOverview(schedules: queue.schedules),
             const SizedBox(height: AppSpacing.lg),
             if (queue.error != null) ...[
               AppErrorBanner(
@@ -200,7 +170,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
             else
               ...visibleSchedules.map((schedule) {
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                   child: ScheduleCard(
                     schedule: schedule,
                     isDisabled:
@@ -399,153 +369,6 @@ class _PatientHomePageState extends State<PatientHomePage> {
   }
 }
 
-class _TodayOperationsOverview extends StatelessWidget {
-  const _TodayOperationsOverview({required this.schedules});
-
-  final List<ScheduleAvailability> schedules;
-
-  @override
-  Widget build(BuildContext context) {
-    final operating = schedules
-        .where((schedule) => schedule.isOperatingNow)
-        .length;
-    final beforeStart = schedules
-        .where((schedule) => schedule.isBeforeStart)
-        .length;
-    final takeable = schedules
-        .where((schedule) => schedule.canTakeQueue)
-        .length;
-    final remaining = schedules.fold<int>(
-      0,
-      (total, schedule) => total + schedule.remainingQuota,
-    );
-    final taken = schedules.fold<int>(
-      0,
-      (total, schedule) => total + schedule.totalTaken,
-    );
-
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(
-                Icons.insights_outlined,
-                color: AppColors.primaryDark,
-                size: 20,
-              ),
-              SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  'Ringkasan layanan hari ini',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _OverviewMetric(
-                  label: 'Sedang buka',
-                  value: operating.toString(),
-                  color: AppColors.success,
-                  backgroundColor: AppColors.successSoft,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: _OverviewMetric(
-                  label: 'Belum mulai',
-                  value: beforeStart.toString(),
-                  color: AppColors.warning,
-                  backgroundColor: AppColors.warningSoft,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: _OverviewMetric(
-                  label: 'Bisa ambil',
-                  value: takeable.toString(),
-                  color: AppColors.secondary,
-                  backgroundColor: AppColors.secondarySoft,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            schedules.isEmpty
-                ? 'Jadwal akan muncul setelah admin membuka sesi layanan.'
-                : '$taken nomor sudah masuk. Total sisa kuota tersedia: $remaining.',
-            style: const TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              height: 1.35,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OverviewMetric extends StatelessWidget {
-  const _OverviewMetric({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.backgroundColor,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-  final Color backgroundColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ConfirmQueueFact extends StatelessWidget {
   const _ConfirmQueueFact({
     required this.icon,
@@ -598,12 +421,12 @@ class _HomeQuickStats extends StatelessWidget {
   const _HomeQuickStats({
     required this.scheduleCount,
     required this.takeableCount,
-    required this.activeTicketCode,
+    required this.inactiveCount,
   });
 
   final int scheduleCount;
   final int takeableCount;
-  final String? activeTicketCode;
+  final int inactiveCount;
 
   @override
   Widget build(BuildContext context) {
@@ -615,7 +438,7 @@ class _HomeQuickStats extends StatelessWidget {
             label: 'Jadwal',
             value: scheduleCount.toString(),
             color: AppColors.secondary,
-            backgroundColor: AppColors.secondarySoft,
+            backgroundColor: AppColors.secondarySoftOf(context),
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
@@ -625,17 +448,17 @@ class _HomeQuickStats extends StatelessWidget {
             label: 'Bisa diambil',
             value: takeableCount.toString(),
             color: AppColors.success,
-            backgroundColor: AppColors.successSoft,
+            backgroundColor: AppColors.successSoftOf(context),
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: _QuickStatTile(
-            icon: Icons.confirmation_number_outlined,
-            label: 'Tiket aktif',
-            value: activeTicketCode ?? '-',
+            icon: Icons.event_busy_outlined,
+            label: 'Tidak aktif',
+            value: inactiveCount.toString(),
             color: AppColors.primaryDark,
-            backgroundColor: AppColors.primarySoft,
+            backgroundColor: AppColors.primarySoftOf(context),
           ),
         ),
       ],
@@ -663,7 +486,8 @@ class _QuickStatTile extends StatelessWidget {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 34,
@@ -677,10 +501,11 @@ class _QuickStatTile extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(
             value,
+            textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: AppColors.textPrimaryOf(context),
               fontSize: 20,
               fontWeight: FontWeight.w900,
             ),
@@ -688,10 +513,11 @@ class _QuickStatTile extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
+            textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppColors.textMuted,
+            style: TextStyle(
+              color: AppColors.textMutedOf(context),
               fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
@@ -726,8 +552,8 @@ class _SectionHeader extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: AppColors.textPrimaryOf(context),
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
@@ -735,8 +561,8 @@ class _SectionHeader extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  color: AppColors.textMuted,
+                style: TextStyle(
+                  color: AppColors.textMutedOf(context),
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -770,7 +596,7 @@ class _QueueReadinessBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = _state();
+    final state = _state(context);
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -785,7 +611,7 @@ class _QueueReadinessBanner extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.surfaceOf(context),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(state.icon, color: state.color, size: 20),
@@ -797,16 +623,16 @@ class _QueueReadinessBanner extends StatelessWidget {
               children: [
                 Text(
                   state.title,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryOf(context),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   state.message,
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
+                  style: TextStyle(
+                    color: AppColors.textMutedOf(context),
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     height: 1.3,
@@ -820,30 +646,30 @@ class _QueueReadinessBanner extends StatelessWidget {
     );
   }
 
-  _ReadinessState _state() {
+  _ReadinessState _state(BuildContext context) {
     if (isLoading) {
-      return const _ReadinessState(
+      return _ReadinessState(
         icon: Icons.sync_outlined,
         color: AppColors.secondary,
-        backgroundColor: AppColors.secondarySoft,
+        backgroundColor: AppColors.secondarySoftOf(context),
         title: 'Sinkronisasi antrean',
         message: 'Data jadwal dan tiket sedang dimuat dari klinik.',
       );
     }
     if (needsProfileCompletion) {
-      return const _ReadinessState(
+      return _ReadinessState(
         icon: Icons.verified_user_outlined,
         color: AppColors.warning,
-        backgroundColor: AppColors.warningSoft,
+        backgroundColor: AppColors.warningSoftOf(context),
         title: 'Profil perlu dilengkapi',
         message: 'Lengkapi data pasien sebelum mengambil nomor antrean.',
       );
     }
     if (hasActiveTicket) {
-      return const _ReadinessState(
+      return _ReadinessState(
         icon: Icons.confirmation_number_outlined,
         color: AppColors.primaryDark,
-        backgroundColor: AppColors.primarySoft,
+        backgroundColor: AppColors.primarySoftOf(context),
         title: 'Anda punya antrean aktif',
         message: 'Pantau nomor Anda dan tetap siap saat giliran mendekat.',
       );
@@ -852,25 +678,25 @@ class _QueueReadinessBanner extends StatelessWidget {
       return _ReadinessState(
         icon: Icons.task_alt_outlined,
         color: AppColors.success,
-        backgroundColor: AppColors.successSoft,
+        backgroundColor: AppColors.successSoftOf(context),
         title: '$takeableCount jadwal siap diambil',
         message: 'Pilih poli dan dokter tujuan, lalu ambil nomor antrean.',
       );
     }
     if (scheduleCount > 0) {
-      return const _ReadinessState(
+      return _ReadinessState(
         icon: Icons.lock_clock_outlined,
         color: AppColors.warning,
-        backgroundColor: AppColors.warningSoft,
+        backgroundColor: AppColors.warningSoftOf(context),
         title: 'Belum ada jadwal yang bisa diambil',
         message:
             'Jadwal hari ini ada, tetapi sesi belum dibuka klinik, kuota penuh, atau jam layanan sudah selesai.',
       );
     }
-    return const _ReadinessState(
+    return _ReadinessState(
       icon: Icons.event_busy_outlined,
       color: AppColors.textMuted,
-      backgroundColor: AppColors.surfaceMuted,
+      backgroundColor: AppColors.surfaceMutedOf(context),
       title: 'Jadwal belum tersedia',
       message: 'Muat ulang setelah klinik membuka jadwal antrean hari ini.',
     );
@@ -901,14 +727,14 @@ class _ProfileGuardNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      backgroundColor: AppColors.warningSoft,
+      backgroundColor: AppColors.warningSoftOf(context),
       child: Row(
         children: [
           Container(
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.surfaceOf(context),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: const Icon(
@@ -917,11 +743,11 @@ class _ProfileGuardNotice extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          const Expanded(
+          Expanded(
             child: Text(
               'Lengkapi data pasien agar klinik bisa memverifikasi antrean Anda.',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryOf(context),
                 fontWeight: FontWeight.w800,
                 height: 1.35,
               ),

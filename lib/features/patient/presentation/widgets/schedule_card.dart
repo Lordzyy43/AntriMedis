@@ -22,7 +22,7 @@ class ScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = _statusVisual(schedule);
+    final status = _statusVisual(context, schedule);
     final quotaProgress = schedule.quotaUsageRatio;
 
     return AppCard(
@@ -51,8 +51,8 @@ class ScheduleCard extends StatelessWidget {
                             schedule.doctorName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
+                            style: TextStyle(
+                              color: AppColors.textPrimaryOf(context),
                               fontSize: 15,
                               fontWeight: FontWeight.w900,
                             ),
@@ -70,8 +70,8 @@ class ScheduleCard extends StatelessWidget {
                             schedule.polyclinicName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
+                            style: TextStyle(
+                              color: AppColors.textMutedOf(context),
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
@@ -121,7 +121,7 @@ class ScheduleCard extends StatelessWidget {
                   label: 'Estimasi awal',
                   value: schedule.estimatedFirstWaitLabel,
                   color: AppColors.secondary,
-                  backgroundColor: AppColors.secondarySoft,
+                  backgroundColor: AppColors.secondarySoftOf(context),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -133,7 +133,7 @@ class ScheduleCard extends StatelessWidget {
                       ? '-'
                       : '${schedule.queuePrefix}${schedule.lastNumber.toString().padLeft(3, '0')}',
                   color: AppColors.primaryDark,
-                  backgroundColor: AppColors.primarySoft,
+                  backgroundColor: AppColors.primarySoftOf(context),
                 ),
               ),
             ],
@@ -142,9 +142,9 @@ class ScheduleCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
+              color: AppColors.surfaceMutedOf(context),
               borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: AppColors.borderOf(context)),
             ),
             child: Column(
               children: [
@@ -156,8 +156,8 @@ class ScheduleCard extends StatelessWidget {
                         children: [
                           Text(
                             'Sisa ${schedule.remainingQuota}/${schedule.quotaLimit}',
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
+                            style: TextStyle(
+                              color: AppColors.textPrimaryOf(context),
                               fontSize: 13,
                               fontWeight: FontWeight.w900,
                             ),
@@ -165,8 +165,8 @@ class ScheduleCard extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             '${schedule.totalTaken} nomor sudah masuk',
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
+                            style: TextStyle(
+                              color: AppColors.textMutedOf(context),
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
@@ -180,14 +180,14 @@ class ScheduleCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: AppColors.surfaceOf(context),
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: AppColors.borderOf(context)),
                       ),
                       child: Text(
                         '${(quotaProgress * 100).round()}%',
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
+                        style: TextStyle(
+                          color: AppColors.textMutedOf(context),
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
                         ),
@@ -204,7 +204,7 @@ class ScheduleCard extends StatelessWidget {
                     color: schedule.remainingQuota <= 2
                         ? AppColors.warning
                         : AppColors.primary,
-                    backgroundColor: AppColors.border,
+                    backgroundColor: AppColors.borderOf(context),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -283,38 +283,41 @@ class ScheduleCard extends StatelessWidget {
     );
   }
 
-  _ScheduleStatusVisual _statusVisual(ScheduleAvailability schedule) {
+  _ScheduleStatusVisual _statusVisual(
+    BuildContext context,
+    ScheduleAvailability schedule,
+  ) {
     if (schedule.canTakeQueue) {
-      return const _ScheduleStatusVisual(
+      return _ScheduleStatusVisual(
         label: 'Siap Diambil',
         icon: Icons.task_alt_outlined,
         color: AppColors.success,
-        backgroundColor: AppColors.successSoft,
+        backgroundColor: AppColors.successSoftOf(context),
       );
     }
 
     final reason = schedule.availabilityReason.toLowerCase();
     if (reason.contains('kuota')) {
-      return const _ScheduleStatusVisual(
+      return _ScheduleStatusVisual(
         label: 'Penuh',
         icon: Icons.groups_2_outlined,
-        color: AppColors.textMuted,
-        backgroundColor: AppColors.surfaceMuted,
+        color: AppColors.textMutedOf(context),
+        backgroundColor: AppColors.surfaceMutedOf(context),
       );
     }
     if (reason.contains('selesai') || reason.contains('lewat')) {
-      return const _ScheduleStatusVisual(
+      return _ScheduleStatusVisual(
         label: 'Selesai',
         icon: Icons.event_busy_outlined,
-        color: AppColors.textMuted,
-        backgroundColor: AppColors.surfaceMuted,
+        color: AppColors.textMutedOf(context),
+        backgroundColor: AppColors.surfaceMutedOf(context),
       );
     }
     return _ScheduleStatusVisual(
       label: schedule.availabilityReason,
       icon: Icons.lock_clock_outlined,
       color: AppColors.warning,
-      backgroundColor: AppColors.warningSoft,
+      backgroundColor: AppColors.warningSoftOf(context),
     );
   }
 }
@@ -343,7 +346,7 @@ class _DoctorAvatar extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          const Icon(Icons.person_outline, color: AppColors.textMuted),
+          Icon(Icons.person_outline, color: AppColors.textMutedOf(context)),
           Positioned(
             right: 0,
             bottom: 0,
@@ -354,7 +357,10 @@ class _DoctorAvatar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: color,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.surface, width: 2),
+                border: Border.all(
+                  color: AppColors.surfaceOf(context),
+                  width: 2,
+                ),
               ),
               child: Text(
                 prefix,
@@ -420,7 +426,7 @@ class _InsightTile extends StatelessWidget {
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.surfaceOf(context),
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Icon(icon, color: color, size: 17),
@@ -434,8 +440,8 @@ class _InsightTile extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
+                  style: TextStyle(
+                    color: AppColors.textMutedOf(context),
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                   ),
@@ -445,8 +451,8 @@ class _InsightTile extends StatelessWidget {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryOf(context),
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -478,7 +484,7 @@ class _GuidancePanel extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Row(
@@ -496,7 +502,7 @@ class _GuidancePanel extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: isReady ? AppColors.textPrimary : color,
+                color: isReady ? AppColors.textPrimaryOf(context) : color,
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 height: 1.25,
@@ -519,15 +525,15 @@ class _MetaItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 15, color: AppColors.textMuted),
+        Icon(icon, size: 15, color: AppColors.textMutedOf(context)),
         const SizedBox(width: AppSpacing.xs),
         Expanded(
           child: Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppColors.textMuted,
+            style: TextStyle(
+              color: AppColors.textMutedOf(context),
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),

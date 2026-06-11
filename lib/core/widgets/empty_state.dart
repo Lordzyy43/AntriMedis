@@ -29,7 +29,7 @@ class EmptyState extends StatelessWidget {
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: AppColors.primarySoft,
+              color: AppColors.primarySoftOf(context),
               borderRadius: BorderRadius.circular(AppRadius.lg),
             ),
             child: Icon(icon, color: AppColors.primaryDark),
@@ -40,7 +40,10 @@ class EmptyState extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textMuted, height: 1.4),
+            style: TextStyle(
+              color: AppColors.textMutedOf(context),
+              height: 1.4,
+            ),
           ),
           if (actionLabel != null && onAction != null) ...[
             const SizedBox(height: AppSpacing.md),
