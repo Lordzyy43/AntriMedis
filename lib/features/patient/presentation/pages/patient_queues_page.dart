@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/config/app_colors.dart';
 import '../../../../core/config/app_spacing.dart';
-import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_error_banner.dart';
 import '../../../../core/widgets/empty_state.dart';
 import '../../../queue/data/models/queue_ticket_detail.dart';
