@@ -19,6 +19,7 @@ class ScheduleAvailability {
     required this.remainingQuota,
     required this.isTakeable,
     required this.availabilityReason,
+    required this.operationalPhase,
   });
 
   final String scheduleId;
@@ -40,6 +41,7 @@ class ScheduleAvailability {
   final int remainingQuota;
   final bool isTakeable;
   final String availabilityReason;
+  final String operationalPhase;
 
   bool get canTakeQueue => isTakeable && queueSessionId != null;
 
@@ -52,9 +54,12 @@ class ScheduleAvailability {
 
   bool get isFull => remainingQuota <= 0 || status == 'full';
 
-  bool get hasStarted => !DateTime.now().isBefore(_dateTimeFor(startTime));
+  bool get hasStarted {
+    if (operationalPhase == 'before_start') return false;
+    return true;
+  }
 
-  bool get hasEnded => !DateTime.now().isBefore(_dateTimeFor(endTime));
+  bool get hasEnded => operationalPhase == 'ended';
 
   bool get isBeforeStart => !hasStarted;
 
@@ -87,19 +92,6 @@ class ScheduleAvailability {
     return '~ $minutes menit';
   }
 
-  DateTime _dateTimeFor(String timeValue) {
-    final parts = timeValue.split(':');
-    final hour = int.tryParse(parts.first) ?? 0;
-    final minute = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
-    return DateTime(
-      scheduleDate.year,
-      scheduleDate.month,
-      scheduleDate.day,
-      hour,
-      minute,
-    );
-  }
-
   factory ScheduleAvailability.fromJson(Map<String, dynamic> json) {
     return ScheduleAvailability(
       scheduleId: json['schedule_id'] as String,
@@ -122,6 +114,7 @@ class ScheduleAvailability {
       isTakeable: json['is_takeable'] as bool? ?? true,
       availabilityReason:
           json['availability_reason'] as String? ?? 'Siap diambil',
+      operationalPhase: json['operational_phase'] as String? ?? 'operating',
     );
   }
 }

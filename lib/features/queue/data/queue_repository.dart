@@ -1,6 +1,6 @@
-import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/services/app_logger.dart';
 import 'models/queue_ticket_detail.dart';
 import 'models/queue_ticket_timeline_item.dart';
 import 'models/schedule_availability.dart';
@@ -11,12 +11,11 @@ class QueueRepository {
   final SupabaseClient _client;
 
   Future<List<ScheduleAvailability>> fetchSchedules() async {
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final data = await _client
         .from('v_schedule_availability')
         .select()
         .eq('status', 'open')
-        .eq('schedule_date', today)
+        .eq('is_current_local_date', true)
         .order('start_time', ascending: true);
 
     return data
@@ -58,18 +57,34 @@ class QueueRepository {
   }
 
   Future<QueueTicketDetail> createTicket(String queueSessionId) async {
-    final ticket = await _client.rpc<Map<String, dynamic>>(
-      'create_queue_ticket',
-      params: {'p_queue_session_id': queueSessionId},
-    );
-    return fetchTicketDetail(ticket['id'] as String);
+    try {
+      final ticket = await _client.rpc<Map<String, dynamic>>(
+        'create_queue_ticket',
+        params: {'p_queue_session_id': queueSessionId},
+      );
+      return fetchTicketDetail(ticket['id'] as String);
+    } catch (error, stackTrace) {
+      AppLogger.queue(
+        'create_queue_ticket failed',
+        error: error,
+        stackTrace: stackTrace,
+        context: {'queue_session_id': queueSessionId},
+      );
+      rethrow;
+    }
   }
 
   Future<QueueTicketDetail> fetchTicketDetail(String ticketId) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw AuthException('Unauthorized');
+    }
+
     final data = await _client
         .from('v_queue_ticket_details')
         .select()
         .eq('ticket_id', ticketId)
+        .eq('patient_id', userId)
         .single();
 
     return QueueTicketDetail.fromJson(data);
@@ -78,10 +93,14 @@ class QueueRepository {
   Future<List<QueueTicketTimelineItem>> fetchTicketTimeline(
     String ticketId,
   ) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+
     final data = await _client
         .from('v_queue_ticket_timeline')
         .select()
         .eq('queue_ticket_id', ticketId)
+        .eq('patient_id', userId)
         .order('created_at', ascending: true);
 
     return data
@@ -92,11 +111,24 @@ class QueueRepository {
   }
 
   Future<QueueTicketDetail> cancelTicket(String ticketId) async {
-    final ticket = await _client.rpc<Map<String, dynamic>>(
-      'cancel_my_ticket',
-      params: {'p_ticket_id': ticketId, 'p_message': 'Dibatalkan oleh pasien'},
-    );
-    return fetchTicketDetail(ticket['id'] as String);
+    try {
+      final ticket = await _client.rpc<Map<String, dynamic>>(
+        'cancel_my_ticket',
+        params: {
+          'p_ticket_id': ticketId,
+          'p_message': 'Dibatalkan oleh pasien',
+        },
+      );
+      return fetchTicketDetail(ticket['id'] as String);
+    } catch (error, stackTrace) {
+      AppLogger.queue(
+        'cancel_my_ticket failed',
+        error: error,
+        stackTrace: stackTrace,
+        context: {'ticket_id': ticketId},
+      );
+      rethrow;
+    }
   }
 
   RealtimeChannel subscribeToTicket({
@@ -179,12 +211,6 @@ class QueueRepository {
   }) {
     final channel = _client.channel('patient:schedule-feed');
     channel
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'queue_sessions',
-          callback: (_) => onChanged(),
-        )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
