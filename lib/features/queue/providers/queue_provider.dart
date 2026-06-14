@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/app_logger.dart';
@@ -31,6 +32,7 @@ class QueueProvider extends ChangeNotifier {
   bool _isRefreshingSchedules = false;
   String? _error;
   String? _lastNearNotificationKey;
+  String? _lastNearVibrationKey;
   String? _lastTicketStatus;
   DateTime? _lastScheduleSyncedAt;
 
@@ -184,6 +186,7 @@ class QueueProvider extends ChangeNotifier {
     _error = null;
     _lastTicketStatus = null;
     _lastNearNotificationKey = null;
+    _lastNearVibrationKey = null;
     _lastScheduleSyncedAt = null;
     _isRefreshingActiveTicket = false;
     _isRefreshingSchedules = false;
@@ -321,6 +324,7 @@ class QueueProvider extends ChangeNotifier {
         ticket.status == 'waiting' &&
         _lastNearNotificationKey != nearKey) {
       _lastNearNotificationKey = nearKey;
+      await _vibrateIfSupported(nearKey);
       await NotificationService.instance.showQueueNear(
         queueCode: ticket.queueCode,
         remaining: ticket.remainingBeforeMe,
@@ -350,6 +354,27 @@ class QueueProvider extends ChangeNotifier {
         await NotificationService.instance.showQueueExpired(
           queueCode: ticket.queueCode,
         );
+    }
+  }
+
+  Future<void> _vibrateIfSupported(String key) async {
+    if (kIsWeb || _lastNearVibrationKey == key) return;
+
+    if (defaultTargetPlatform != TargetPlatform.android &&
+        defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
+
+    try {
+      _lastNearVibrationKey = key;
+      await HapticFeedback.mediumImpact();
+    } catch (error, stackTrace) {
+      AppLogger.queue(
+        'queue vibration failed',
+        error: error,
+        stackTrace: stackTrace,
+        context: {'key': key},
+      );
     }
   }
 

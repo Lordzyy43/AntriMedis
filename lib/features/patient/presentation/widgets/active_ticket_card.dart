@@ -18,6 +18,7 @@ class ActiveTicketCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ticket = context.watch<QueueProvider>().activeTicket!;
     final status = queueStatusStyle(ticket.status);
+    final remainingQueue = _remainingQueueCount(ticket);
 
     return AppCard(
       onTap: onTap,
@@ -57,60 +58,86 @@ class ActiveTicketCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  ticket.polyclinicName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.lg),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: const Icon(
-                        Icons.medical_services_outlined,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const Text(
+                            'NOMOR ANDA',
+                            style: TextStyle(
+                              color: Color(0xCCFFFFFF),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
                           Text(
-                            ticket.doctorName,
+                            ticket.queueCode,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.white,
+                              fontSize: 48,
                               fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          Text(
-                            ticket.specialization ?? 'Dokter Umum',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xCCFFFFFF),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                              height: 1,
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text(
+                          'SAAT INI',
+                          style: TextStyle(
+                            color: Color(0xCCFFFFFF),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          ticket.currentNumber == 0
+                              ? '-'
+                              : ticket.currentQueueLabel,
+                          style: const TextStyle(
+                            color: AppColors.secondary,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.medical_services_outlined,
+                      color: Color(0xCCFFFFFF),
+                      size: 17,
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        '${ticket.polyclinicName} - ${ticket.doctorName}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xCCFFFFFF),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
@@ -123,43 +150,10 @@ class ActiveTicketCard extends StatelessWidget {
             child: Column(
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'NOMOR ANTREAN ANDA',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            ticket.queueCode,
-                            style: const TextStyle(
-                              color: AppColors.primaryDark,
-                              fontSize: 38,
-                              fontWeight: FontWeight.w900,
-                              height: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _CalledNumber(ticket: ticket),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Row(
                   children: [
                     Expanded(
                       child: _MetricBox(
-                        label: 'Sisa Antrean',
+                        label: 'Posisi',
                         value: ticket.remainingBeforeMeLabel,
                         icon: Icons.groups_2_outlined,
                       ),
@@ -167,9 +161,17 @@ class ActiveTicketCard extends StatelessWidget {
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: _MetricBox(
-                        label: 'Nomor Saat Ini',
+                        label: 'Saat Ini',
                         value: ticket.currentQueueLabel,
                         icon: Icons.campaign_outlined,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: _MetricBox(
+                        label: 'Sisa',
+                        value: remainingQueue.toString(),
+                        icon: Icons.format_list_numbered_outlined,
                       ),
                     ),
                   ],
@@ -190,50 +192,6 @@ class ActiveTicketCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _CalledNumber extends StatelessWidget {
-  const _CalledNumber({required this.ticket});
-
-  final QueueTicketDetail ticket;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        const Text(
-          'SEDANG DIPANGGIL',
-          style: TextStyle(
-            color: AppColors.textMuted,
-            fontSize: 10,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.campaign_outlined,
-              color: AppColors.secondary,
-              size: 18,
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            Text(
-              ticket.currentNumber == 0 ? '-' : ticket.currentQueueLabel,
-              style: const TextStyle(
-                color: AppColors.secondary,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }
@@ -261,32 +219,26 @@ class _MetricBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: AppColors.primaryDark),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          Icon(icon, size: 16, color: AppColors.primaryDark),
           const SizedBox(height: AppSpacing.xs),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 2),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: AppColors.textPrimary,
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -294,6 +246,12 @@ class _MetricBox extends StatelessWidget {
       ),
     );
   }
+}
+
+int _remainingQueueCount(QueueTicketDetail ticket) {
+  final remaining = ticket.lastNumber - ticket.currentNumber;
+  if (remaining < 0) return 0;
+  return remaining;
 }
 
 class _ProgressSteps extends StatelessWidget {

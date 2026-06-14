@@ -33,8 +33,8 @@ class NotificationService {
     const details = NotificationDetails(android: android);
     await _plugin.show(
       id: queueCode.hashCode,
-      title: 'Antrean hampir dipanggil',
-      body: 'Nomor $queueCode tersisa $remaining antrean lagi.',
+      title: 'Giliran hampir tiba',
+      body: 'Nomor $queueCode tinggal $remaining antrean di depan.',
       notificationDetails: details,
     );
   }
@@ -42,7 +42,7 @@ class NotificationService {
   Future<void> showQueueCalled({required String queueCode}) async {
     await _showQueueNotification(
       id: Object.hash(queueCode, 'called'),
-      title: 'Nomor antrean dipanggil',
+      title: 'Sedang dipanggil',
       body: 'Nomor $queueCode sedang dipanggil. Silakan menuju poli.',
     );
   }
@@ -58,9 +58,8 @@ class NotificationService {
   Future<void> showQueueMissed({required String queueCode}) async {
     await _showQueueNotification(
       id: Object.hash(queueCode, 'missed'),
-      title: 'Nomor antrean terlewat',
-      body:
-          'Nomor $queueCode terlewat. Tunggu panggil ulang setelah antrean reguler selesai.',
+      title: 'Terlewat',
+      body: 'Nomor $queueCode terlewat. Tunggu panggil ulang setelah antrean reguler selesai.',
     );
   }
 
