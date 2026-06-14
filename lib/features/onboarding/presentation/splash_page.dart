@@ -17,10 +17,9 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   // Koreografi Animasi Cinematic
   late final Animation<double> _logoOpacity;
   late final Animation<double> _logoScale;
+  late final Animation<double> _logoPulse;
   late final Animation<double> _glowScale;
   late final Animation<double> _glowOpacity;
-  late final Animation<double> _textOpacity;
-  late final Animation<double> _textLetterSpacing;
   late final Animation<double> _indicatorOpacity;
   late final Animation<Offset> _indicatorSlide;
 
@@ -37,7 +36,6 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 1800),
     );
 
-    // 1. Efek Pendaran Cahaya (Ambient Glow) di Belakang Logo
     _glowOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
@@ -51,7 +49,6 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
       ),
     );
 
-    // 2. Animasi Logo Transparan
     _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
@@ -64,22 +61,24 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
         curve: const Interval(0.1, 0.5, curve: Curves.easeOutCubic),
       ),
     );
+    _logoPulse = TweenSequence<double>([
+  TweenSequenceItem(
+    tween: Tween(
+      begin: 1.0,
+      end: 1.04,
+    ).chain(CurveTween(curve: Curves.easeInOut)),
+    weight: 50,
+  ),
+  TweenSequenceItem(
+    tween: Tween(
+      begin: 1.04,
+      end: 1.0,
+    ).chain(CurveTween(curve: Curves.easeInOut)),
+    weight: 50,
+  ),
+]).animate(_animationController);
 
-    // 3. Efek Teks Cinematic (Renggang -> Merapat Elegan)
-    _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.3, 0.7, curve: Curves.easeOut),
-      ),
-    );
-    _textLetterSpacing = Tween<double>(begin: 6.0, end: -0.8).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.3, 0.8, curve: Curves.easeInOutCubic),
-      ),
-    );
 
-    // 4. Indikator Progress Tipis di Bawah
     _indicatorOpacity = Tween<double>(begin: 0.0, end: 0.5).animate(
       CurvedAnimation(
         parent: _animationController,
@@ -93,7 +92,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
       ),
     );
 
-    _animationController.forward();
+    _animationController.repeat(reverse: true);
   }
 
   Future<void> _initializeApp() async {
@@ -134,9 +133,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
           child: SafeArea(
             child: Column(
               children: [
-                const Spacer(flex: 5),
+                const Spacer(),
 
-                // --- AREA LOGO DENGAN AMBIENT GLOW ---
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -162,11 +160,16 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                       ),
                     ),
 
-                    // Lapisan Utama Logo Transparan
                     FadeTransition(
                       opacity: _logoOpacity,
-                      child: ScaleTransition(
-                        scale: _logoScale,
+                      child: AnimatedBuilder(
+                        animation: _logoPulse,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _logoScale.value * _logoPulse.value,
+                            child: child,
+                          );
+                        },
                         child: SizedBox(
                           width: 110,
                           height: 110,
@@ -182,26 +185,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
 
                 const SizedBox(height: AppSpacing.xxl),
 
-                // --- NAMA APLIKASI DENGAN ANIMATED LETTER SPACING ---
-                FadeTransition(
-                  opacity: _textOpacity,
-                  child: AnimatedBuilder(
-                    animation: _textLetterSpacing,
-                    builder: (context, child) {
-                      return Text(
-                        'AntriMedis',
-                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          color: AppColors.textPrimaryOf(context),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 34,
-                          letterSpacing: _textLetterSpacing.value,
-                        ),
-                      );
-                    },
-                  ),
-                ),
 
-                const Spacer(flex: 4),
+                const Spacer(),
 
                 // --- INDIKATOR PROGRESS SLIDE & FADE IN ---
                 FadeTransition(
