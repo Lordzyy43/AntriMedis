@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/app_logger.dart';
 import '../../../core/services/notification_service.dart';
+import '../data/models/polyclinic_option.dart';
 import '../data/models/queue_ticket_detail.dart';
 import '../data/models/queue_ticket_timeline_item.dart';
 import '../data/models/schedule_availability.dart';
@@ -16,6 +17,7 @@ class QueueProvider extends ChangeNotifier {
   final QueueRepository _repository;
 
   List<ScheduleAvailability> _schedules = [];
+  List<PolyclinicOption> _polyclinics = [];
   List<QueueTicketDetail> _tickets = [];
   QueueTicketDetail? _activeTicket;
   QueueTicketDetail? _recentResolvedTicket;
@@ -33,6 +35,7 @@ class QueueProvider extends ChangeNotifier {
   DateTime? _lastScheduleSyncedAt;
 
   List<ScheduleAvailability> get schedules => _schedules;
+  List<PolyclinicOption> get polyclinics => _polyclinics;
   List<QueueTicketDetail> get tickets => _tickets;
   List<QueueTicketDetail> get historyTickets =>
       _tickets.where((ticket) => !ticket.isActive).toList();
@@ -49,13 +52,15 @@ class QueueProvider extends ChangeNotifier {
     try {
       final results = await Future.wait([
         _repository.fetchSchedules(),
+        _repository.fetchPolyclinics(),
         _repository.fetchActiveTicket(),
         _repository.fetchMyTickets(),
       ]);
       _schedules = results[0] as List<ScheduleAvailability>;
-      _activeTicket = results[1] as QueueTicketDetail?;
+      _polyclinics = results[1] as List<PolyclinicOption>;
+      _activeTicket = results[2] as QueueTicketDetail?;
       _recentResolvedTicket = null;
-      _tickets = results[2] as List<QueueTicketDetail>;
+      _tickets = results[3] as List<QueueTicketDetail>;
       _lastScheduleSyncedAt = DateTime.now();
       _lastTicketStatus = _activeTicket?.status;
       _subscribeActiveTicket();
@@ -83,10 +88,12 @@ class QueueProvider extends ChangeNotifier {
       _recentResolvedTicket = null;
       final results = await Future.wait([
         _repository.fetchSchedules(),
+        _repository.fetchPolyclinics(),
         _repository.fetchMyTickets(),
       ]);
       _schedules = results[0] as List<ScheduleAvailability>;
-      _tickets = results[1] as List<QueueTicketDetail>;
+      _polyclinics = results[1] as List<PolyclinicOption>;
+      _tickets = results[2] as List<QueueTicketDetail>;
       _lastScheduleSyncedAt = DateTime.now();
       _lastTicketStatus = _activeTicket?.status;
       _subscribeActiveTicket();
@@ -170,6 +177,7 @@ class QueueProvider extends ChangeNotifier {
     _activeTicketPollTimer = null;
     _schedulePollTimer = null;
     _schedules = [];
+    _polyclinics = [];
     _tickets = [];
     _activeTicket = null;
     _recentResolvedTicket = null;
@@ -186,12 +194,14 @@ class QueueProvider extends ChangeNotifier {
     try {
       final results = await Future.wait([
         _repository.fetchSchedules(),
+        _repository.fetchPolyclinics(),
         _repository.fetchMyTickets(),
         _repository.fetchActiveTicket(),
       ]);
       _schedules = results[0] as List<ScheduleAvailability>;
-      _tickets = results[1] as List<QueueTicketDetail>;
-      _activeTicket = results[2] as QueueTicketDetail?;
+      _polyclinics = results[1] as List<PolyclinicOption>;
+      _tickets = results[2] as List<QueueTicketDetail>;
+      _activeTicket = results[3] as QueueTicketDetail?;
       _recentResolvedTicket = null;
       _lastScheduleSyncedAt = DateTime.now();
       _lastTicketStatus = _activeTicket?.status;
@@ -221,10 +231,12 @@ class QueueProvider extends ChangeNotifier {
       _recentResolvedTicket = null;
       final results = await Future.wait([
         _repository.fetchSchedules(),
+        _repository.fetchPolyclinics(),
         _repository.fetchMyTickets(),
       ]);
       _schedules = results[0] as List<ScheduleAvailability>;
-      _tickets = results[1] as List<QueueTicketDetail>;
+      _polyclinics = results[1] as List<PolyclinicOption>;
+      _tickets = results[2] as List<QueueTicketDetail>;
       _lastScheduleSyncedAt = DateTime.now();
       _subscribeActiveTicket();
       _subscribeScheduleFeed();
@@ -278,7 +290,12 @@ class QueueProvider extends ChangeNotifier {
     if (_isRefreshingSchedules) return;
     _isRefreshingSchedules = true;
     try {
-      _schedules = await _repository.fetchSchedules();
+      final results = await Future.wait([
+        _repository.fetchSchedules(),
+        _repository.fetchPolyclinics(),
+      ]);
+      _schedules = results[0] as List<ScheduleAvailability>;
+      _polyclinics = results[1] as List<PolyclinicOption>;
       _lastScheduleSyncedAt = DateTime.now();
       _error = null;
       notifyListeners();
