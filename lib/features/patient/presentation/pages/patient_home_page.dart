@@ -252,11 +252,6 @@ class _PatientHomePageState extends State<PatientHomePage> {
                 '${schedule.polyclinicName} - ${schedule.doctorName}',
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Jam praktik ${schedule.startTime}-${schedule.endTime}. '
-                'Nomor antrean berlaku untuk sesi hari ini dan dipanggil sesuai urutan nomor.',
-              ),
               const SizedBox(height: AppSpacing.md),
               _ConfirmQueueFact(
                 icon: Icons.groups_2_outlined,
@@ -268,12 +263,6 @@ class _PatientHomePageState extends State<PatientHomePage> {
                 icon: Icons.campaign_outlined,
                 label: 'Nomor saat ini',
                 value: schedule.currentQueueLabel,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              _ConfirmQueueFact(
-                icon: Icons.info_outline,
-                label: 'Catatan',
-                value: schedule.patientGuidance,
               ),
             ],
           ),
