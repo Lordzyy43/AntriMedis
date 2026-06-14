@@ -16,7 +16,7 @@ class NotificationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<NotificationProvider>();
-    final isDark = AppColors.isDark(context);
+    
 
     return Scaffold(
       backgroundColor: AppColors.backgroundOf(context),
