@@ -20,6 +20,9 @@ class NotificationProvider extends ChangeNotifier {
   int get unreadCount =>
       _notifications.where((notification) => !notification.isRead).length;
 
+  bool isLatestNotification(PatientNotification notification) =>
+      !notification.isRead;
+
   Future<void> load() async {
     _isLoading = true;
     _error = null;
@@ -35,11 +38,68 @@ class NotificationProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> openInbox() async {
+    await load();
+  }
+
   Future<void> markAsRead(String notificationId) async {
-    await _repository.markAsRead(notificationId);
-    _notifications = await _repository.fetchMyNotifications();
-    _subscribe();
+    final previous = _notifications;
+    _notifications = [
+      for (final notification in _notifications)
+        notification.id == notificationId
+            ? PatientNotification(
+                id: notification.id,
+                type: notification.type,
+                title: notification.title,
+                body: notification.body,
+                isRead: true,
+                createdAt: notification.createdAt,
+                readAt: notification.readAt ?? DateTime.now().toUtc(),
+              )
+            : notification,
+    ];
     notifyListeners();
+
+    try {
+      await _repository.markAsRead(notificationId);
+      _notifications = await _repository.fetchMyNotifications();
+      _subscribe();
+    } catch (_) {
+      _notifications = previous;
+      _error = 'Gagal memperbarui status notifikasi.';
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> markAllAsRead() async {
+    if (unreadCount == 0) return;
+
+    final previous = _notifications;
+    _notifications = [
+      for (final notification in _notifications)
+        PatientNotification(
+          id: notification.id,
+          type: notification.type,
+          title: notification.title,
+          body: notification.body,
+          isRead: true,
+          createdAt: notification.createdAt,
+          readAt: notification.readAt ?? DateTime.now().toUtc(),
+        ),
+    ];
+    notifyListeners();
+
+    try {
+      await _repository.markAllAsRead();
+      _notifications = await _repository.fetchMyNotifications();
+      _subscribe();
+    } catch (_) {
+      _notifications = previous;
+      _error = 'Gagal memperbarui status notifikasi.';
+    } finally {
+      notifyListeners();
+    }
   }
 
   void clear() {
