@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/config/app_spacing.dart';
@@ -9,6 +10,7 @@ import '../../../../core/widgets/empty_state.dart';
 import '../../../clinic/providers/clinic_provider.dart';
 import '../../../profile/presentation/profile_completion_page.dart';
 import '../../../profile/providers/profile_provider.dart';
+import '../../../queue/data/models/polyclinic_option.dart';
 import '../../../queue/data/models/schedule_availability.dart';
 import '../../../queue/providers/queue_provider.dart';
 import 'queue_tracking_page.dart';
@@ -42,7 +44,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
     final activeTicket = queue.activeTicket;
     final hasActiveTicket = activeTicket != null;
     final needsProfileCompletion = profile.needsCompletion;
-    final polyclinicOptions = _polyclinicOptions(queue.schedules);
+    final polyclinicOptions = _polyclinicOptions(queue.polyclinics);
     final selectedPolyclinic = polyclinicOptions.contains(_selectedPolyclinic)
         ? _selectedPolyclinic
         : _allPolyclinics;
@@ -50,10 +52,15 @@ class _PatientHomePageState extends State<PatientHomePage> {
       queue.schedules,
       selectedPolyclinic,
     );
-    final takeableCount = queue.schedules
-        .where((schedule) => schedule.canTakeQueue)
+    final activePolyclinicNames = _activePolyclinicNames(queue.schedules);
+    final takeableCount = queue.polyclinics
+        .where(
+          (polyclinic) =>
+              polyclinic.isActive &&
+              activePolyclinicNames.contains(polyclinic.name),
+        )
         .length;
-    final inactiveCount = queue.schedules.length - takeableCount;
+    final inactiveCount = queue.polyclinics.length - takeableCount;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundOf(context),
@@ -78,7 +85,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
             ),
             const SizedBox(height: AppSpacing.lg),
             _HomeQuickStats(
-              scheduleCount: queue.schedules.length,
+              scheduleCount: queue.polyclinics.length,
               takeableCount: takeableCount,
               inactiveCount: inactiveCount,
             ),
@@ -88,7 +95,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
               hasActiveTicket: hasActiveTicket,
               needsProfileCompletion: needsProfileCompletion,
               takeableCount: takeableCount,
-              scheduleCount: queue.schedules.length,
+              scheduleCount: queue.polyclinics.length,
             ),
             const SizedBox(height: AppSpacing.lg),
             if (queue.error != null) ...[
@@ -127,7 +134,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
                     },
             ),
             const SizedBox(height: AppSpacing.sm),
-            if (queue.schedules.isNotEmpty)
+            if (queue.polyclinics.isNotEmpty)
               PolyclinicFilter(
                 options: polyclinicOptions,
                 selected: selectedPolyclinic,
@@ -135,10 +142,10 @@ class _PatientHomePageState extends State<PatientHomePage> {
                   setState(() => _selectedPolyclinic = value);
                 },
               ),
-            if (queue.schedules.isNotEmpty)
+            if (queue.polyclinics.isNotEmpty)
               const SizedBox(height: AppSpacing.lg),
             _SectionHeader(
-              title: 'Jadwal Dokter Hari Ini',
+              title: 'Poli Aktif Hari Ini',
               subtitle: _scheduleSectionSubtitle(
                 context: context,
                 visibleCount: visibleSchedules.length,
@@ -147,12 +154,12 @@ class _PatientHomePageState extends State<PatientHomePage> {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            if (queue.isLoading && queue.schedules.isEmpty)
+            if (queue.isLoading && queue.polyclinics.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(top: 48),
                 child: Center(child: CircularProgressIndicator()),
               )
-            else if (queue.schedules.isEmpty)
+            else if (queue.polyclinics.isEmpty)
               EmptyState(
                 icon: Icons.event_busy_outlined,
                 title: 'Jadwal belum tersedia',
@@ -164,10 +171,18 @@ class _PatientHomePageState extends State<PatientHomePage> {
             else if (visibleSchedules.isEmpty)
               const EmptyState(
                 icon: Icons.manage_search_outlined,
-                title: 'Jadwal poli tidak ditemukan',
+                title: 'Poli tidak ditemukan',
                 message: 'Coba pilih filter poli lain atau muat ulang data.',
               )
-            else
+            else ...[
+              _PolyclinicStatusList(
+                polyclinics: _visiblePolyclinics(
+                  queue.polyclinics,
+                  selectedPolyclinic,
+                ),
+                schedules: queue.schedules,
+              ),
+              const SizedBox(height: AppSpacing.lg),
               ...visibleSchedules.map((schedule) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.lg),
@@ -188,6 +203,7 @@ class _PatientHomePageState extends State<PatientHomePage> {
                   ),
                 );
               }),
+            ],
           ],
         ),
       ),
@@ -266,9 +282,9 @@ class _PatientHomePageState extends State<PatientHomePage> {
               ),
               const SizedBox(height: AppSpacing.sm),
               _ConfirmQueueFact(
-                icon: Icons.timelapse_outlined,
-                label: 'Estimasi awal',
-                value: schedule.estimatedFirstWaitLabel,
+                icon: Icons.campaign_outlined,
+                label: 'Nomor saat ini',
+                value: schedule.currentQueueLabel,
               ),
               const SizedBox(height: AppSpacing.sm),
               _ConfirmQueueFact(
@@ -300,11 +316,28 @@ class _PatientHomePageState extends State<PatientHomePage> {
     ).push(MaterialPageRoute(builder: (_) => const QueueTrackingPage()));
   }
 
-  List<String> _polyclinicOptions(List<ScheduleAvailability> schedules) {
+  Set<String> _activePolyclinicNames(List<ScheduleAvailability> schedules) {
+    return {
+      for (final schedule in schedules)
+        if (schedule.canTakeQueue) schedule.polyclinicName,
+    };
+  }
+
+  List<String> _polyclinicOptions(List<PolyclinicOption> polyclinics) {
     return [
       _allPolyclinics,
-      ...{for (final schedule in schedules) schedule.polyclinicName},
+      ...polyclinics.map((polyclinic) => polyclinic.name),
     ];
+  }
+
+  List<PolyclinicOption> _visiblePolyclinics(
+    List<PolyclinicOption> polyclinics,
+    String selectedPolyclinic,
+  ) {
+    if (selectedPolyclinic == _allPolyclinics) return polyclinics;
+    return polyclinics
+        .where((polyclinic) => polyclinic.name == selectedPolyclinic)
+        .toList();
   }
 
   List<ScheduleAvailability> _visibleSchedules(
@@ -355,18 +388,146 @@ class _PatientHomePageState extends State<PatientHomePage> {
     required bool isRealtime,
     required DateTime? lastSyncedAt,
   }) {
-    if (visibleCount == 0) return 'Tidak ada jadwal pada filter ini';
+    if (visibleCount == 0) return 'Tidak ada poli pada filter ini';
 
     final realtimeLabel = isRealtime ? 'Diperbarui otomatis' : 'Perlu refresh';
     final syncLabel = lastSyncedAt == null
         ? null
-        : TimeOfDay.fromDateTime(lastSyncedAt.toLocal()).format(context);
+        : DateFormat('HH:mm').format(lastSyncedAt.toLocal());
 
     if (syncLabel == null) {
-      return '$visibleCount jadwal ditampilkan - $realtimeLabel';
+      return '$visibleCount sesi poli ditampilkan - $realtimeLabel';
     }
-    return '$visibleCount jadwal ditampilkan - $realtimeLabel, terakhir $syncLabel';
+    return '$visibleCount sesi poli ditampilkan - $realtimeLabel, terakhir $syncLabel';
   }
+}
+
+class _PolyclinicStatusList extends StatelessWidget {
+  const _PolyclinicStatusList({
+    required this.polyclinics,
+    required this.schedules,
+  });
+
+  final List<PolyclinicOption> polyclinics;
+  final List<ScheduleAvailability> schedules;
+
+  @override
+  Widget build(BuildContext context) {
+    final statuses = _statuses();
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        children: [
+          for (var index = 0; index < statuses.length; index++) ...[
+            _PolyclinicStatusRow(status: statuses[index]),
+            if (index < statuses.length - 1)
+              const Divider(height: AppSpacing.lg),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<_PolyclinicStatus> _statuses() {
+    final byName = <String, List<ScheduleAvailability>>{};
+    for (final schedule in schedules) {
+      byName.putIfAbsent(schedule.polyclinicName, () => []).add(schedule);
+    }
+
+    return polyclinics.map((polyclinic) {
+      final sessions = byName[polyclinic.name] ?? [];
+      final active =
+          polyclinic.isActive &&
+          sessions.any((schedule) => schedule.canTakeQueue);
+      return _PolyclinicStatus(
+        name: polyclinic.name,
+        active: active,
+        sessionCount: sessions.length,
+      );
+    }).toList()..sort((first, second) {
+      if (first.active != second.active) return first.active ? -1 : 1;
+      return first.name.compareTo(second.name);
+    });
+  }
+}
+
+class _PolyclinicStatusRow extends StatelessWidget {
+  const _PolyclinicStatusRow({required this.status});
+
+  final _PolyclinicStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = status.active ? AppColors.success : AppColors.textMuted;
+    final background = status.active
+        ? AppColors.successSoftOf(context)
+        : AppColors.surfaceMutedOf(context);
+
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+          child: Icon(
+            status.active ? Icons.task_alt_outlined : Icons.block_outlined,
+            color: color,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                status.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.textPrimaryOf(context),
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                '${status.sessionCount} sesi hari ini',
+                style: TextStyle(
+                  color: AppColors.textMutedOf(context),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text(
+          status.active ? 'Aktif' : 'Tidak Aktif',
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PolyclinicStatus {
+  const _PolyclinicStatus({
+    required this.name,
+    required this.active,
+    required this.sessionCount,
+  });
+
+  final String name;
+  final bool active;
+  final int sessionCount;
 }
 
 class _ConfirmQueueFact extends StatelessWidget {

@@ -69,12 +69,9 @@ class QueueTicketDetail {
   bool get isActive =>
       ['waiting', 'called', 'serving', 'missed'].contains(status);
   bool get canCancel => status == 'waiting';
-  String get waitEstimateLabel {
-    if (status == 'called') return 'Dipanggil';
-    if (status == 'serving') return 'Dilayani';
-    if (status == 'missed') return 'Panggil ulang';
-    if (estimatedWaitMinutes <= 0) return 'Segera';
-    return '~ $estimatedWaitMinutes menit';
+  String get currentQueueLabel {
+    if (currentNumber <= 0) return '-';
+    return '${queueCode.substring(0, 1)}${currentNumber.toString().padLeft(3, '0')}';
   }
 
   String get remainingBeforeMeLabel {

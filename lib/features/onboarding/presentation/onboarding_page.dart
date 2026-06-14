@@ -27,7 +27,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       icon: Icons.monitor_heart_outlined,
       title: 'Pantau Giliran Real-Time',
       body:
-          'Lihat nomor berjalan, posisi antrean, dan estimasi tunggu tanpa menebak-nebak.',
+          'Lihat nomor berjalan, posisi antrean, dan jumlah antrean di depan Anda.',
     ),
     _OnboardingData(
       icon: Icons.notifications_active_outlined,
@@ -116,7 +116,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           ),
                           child: Icon(
                             page.icon,
-                            color: isDark ? AppColors.primary : AppColors.primaryDark,
+                            color: isDark
+                                ? AppColors.primary
+                                : AppColors.primaryDark,
                             size: 44,
                           ),
                         ),
