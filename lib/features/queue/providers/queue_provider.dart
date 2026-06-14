@@ -141,6 +141,7 @@ class QueueProvider extends ChangeNotifier {
         _activeTicket = null;
         _recentResolvedTicket = ticket;
       }
+      _subscribeActiveTicket();
       final results = await Future.wait([
         _repository.fetchSchedules(),
         _repository.fetchMyTickets(),
