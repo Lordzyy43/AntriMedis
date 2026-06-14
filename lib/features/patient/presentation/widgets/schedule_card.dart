@@ -117,9 +117,9 @@ class ScheduleCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _InsightTile(
-                  icon: Icons.timelapse_outlined,
-                  label: 'Estimasi awal',
-                  value: schedule.estimatedFirstWaitLabel,
+                  icon: Icons.campaign_outlined,
+                  label: 'Nomor saat ini',
+                  value: schedule.currentQueueLabel,
                   color: AppColors.secondary,
                   backgroundColor: AppColors.secondarySoftOf(context),
                 ),
@@ -129,9 +129,7 @@ class ScheduleCard extends StatelessWidget {
                 child: _InsightTile(
                   icon: Icons.format_list_numbered_outlined,
                   label: 'Nomor terakhir',
-                  value: schedule.lastNumber <= 0
-                      ? '-'
-                      : '${schedule.queuePrefix}${schedule.lastNumber.toString().padLeft(3, '0')}',
+                  value: schedule.lastQueueLabel,
                   color: AppColors.primaryDark,
                   backgroundColor: AppColors.primarySoftOf(context),
                 ),

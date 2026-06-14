@@ -84,12 +84,14 @@ class ScheduleAvailability {
     return availabilityReason;
   }
 
-  String get estimatedFirstWaitLabel {
-    if (remainingQuota <= 0) return 'Kuota penuh';
-    if (totalTaken <= 0) return 'Nomor awal';
-    final minutes = totalTaken * averageServiceMinutes;
-    if (minutes <= 0) return 'Segera';
-    return '~ $minutes menit';
+  String get currentQueueLabel {
+    if (currentNumber <= 0) return '-';
+    return '$queuePrefix${currentNumber.toString().padLeft(3, '0')}';
+  }
+
+  String get lastQueueLabel {
+    if (lastNumber <= 0) return '-';
+    return '$queuePrefix${lastNumber.toString().padLeft(3, '0')}';
   }
 
   factory ScheduleAvailability.fromJson(Map<String, dynamic> json) {

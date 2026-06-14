@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/app_logger.dart';
+import 'models/polyclinic_option.dart';
 import 'models/queue_ticket_detail.dart';
 import 'models/queue_ticket_timeline_item.dart';
 import 'models/schedule_availability.dart';
@@ -20,6 +21,17 @@ class QueueRepository {
 
     return data
         .map<ScheduleAvailability>((row) => ScheduleAvailability.fromJson(row))
+        .toList();
+  }
+
+  Future<List<PolyclinicOption>> fetchPolyclinics() async {
+    final data = await _client
+        .from('polyclinics')
+        .select('id, name, is_active')
+        .order('name', ascending: true);
+
+    return data
+        .map<PolyclinicOption>((row) => PolyclinicOption.fromJson(row))
         .toList();
   }
 

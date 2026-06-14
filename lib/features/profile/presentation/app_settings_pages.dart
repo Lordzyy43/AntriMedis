@@ -174,9 +174,9 @@ class SupportPage extends StatelessWidget {
                     icon: Icons.quiz_outlined,
                     title: 'FAQ',
                     subtitle: 'Pertanyaan umum seputar antrean online.',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const FaqPage()),
-                    ),
+                    onTap: () => Navigator.of(
+                      context,
+                    ).push(MaterialPageRoute(builder: (_) => const FaqPage())),
                   ),
                   const Divider(height: 1),
                   _SettingsTile(
@@ -194,7 +194,8 @@ class SupportPage extends StatelessWidget {
                   _SettingsTile(
                     icon: Icons.bug_report_outlined,
                     title: 'Laporkan Bug',
-                    subtitle: 'Kontak yang bisa dihubungi saat aplikasi bermasalah.',
+                    subtitle:
+                        'Kontak yang bisa dihubungi saat aplikasi bermasalah.',
                     onTap: () => _showInfoDialog(
                       context,
                       title: 'Laporkan Bug',
@@ -356,7 +357,7 @@ class AppDetailPage extends StatelessWidget {
       icon: Icons.apps_outlined,
       heading: 'AntriMedis',
       body:
-          'AntriMedis adalah aplikasi pasien untuk mengambil nomor antrean klinik, memantau posisi antrean secara real-time, melihat estimasi waktu tunggu, dan menerima notifikasi saat giliran mendekat. Aplikasi ini dirancang untuk membantu pasien datang lebih tepat waktu dan mengurangi waktu tunggu di klinik.',
+          'AntriMedis adalah aplikasi pasien untuk mengambil nomor antrean klinik, memantau nomor berjalan secara real-time, melihat jumlah antrean di depan pengguna, dan menerima notifikasi saat giliran mendekat.',
     );
   }
 }

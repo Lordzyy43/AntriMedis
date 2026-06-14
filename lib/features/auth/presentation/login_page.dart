@@ -416,7 +416,7 @@ class _LoginHeader extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         Text(
-          'Ambil nomor online, pantau giliran, dan lihat estimasi waktu tunggu dari ponsel Anda.',
+          'Ambil nomor online, pantau nomor berjalan, dan lihat jumlah antrean di depan Anda.',
           style: TextStyle(
             fontSize: 16,
             height: 1.45,

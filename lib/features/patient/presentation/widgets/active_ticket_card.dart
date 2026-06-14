@@ -167,9 +167,9 @@ class ActiveTicketCard extends StatelessWidget {
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: _MetricBox(
-                        label: 'Estimasi Tunggu',
-                        value: ticket.waitEstimateLabel,
-                        icon: Icons.timer_outlined,
+                        label: 'Nomor Saat Ini',
+                        value: ticket.currentQueueLabel,
+                        icon: Icons.campaign_outlined,
                       ),
                     ),
                   ],
@@ -224,9 +224,7 @@ class _CalledNumber extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.xs),
             Text(
-              ticket.currentNumber == 0
-                  ? '-'
-                  : '${ticket.queueCode.substring(0, 1)}-${ticket.currentNumber.toString().padLeft(3, '0')}',
+              ticket.currentNumber == 0 ? '-' : ticket.currentQueueLabel,
               style: const TextStyle(
                 color: AppColors.secondary,
                 fontSize: 18,

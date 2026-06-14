@@ -501,7 +501,7 @@ class _LiveEstimateNotice extends StatelessWidget {
           const SizedBox(width: AppSpacing.md),
           const Expanded(
             child: Text(
-              'Posisi antrean diperbarui otomatis saat petugas memanggil atau menyelesaikan pasien. Estimasi bersifat perkiraan dan dapat berubah.',
+              'Posisi antrean diperbarui otomatis saat petugas memanggil atau menyelesaikan pasien. Pantau nomor saat ini dan jumlah antrean di depan Anda.',
               style: TextStyle(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
@@ -649,15 +649,15 @@ class _TrackingHero extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _HeroMiniStat(
-                          label: 'Dipanggil',
-                          value: currentNumber.toString(),
+                          label: 'Nomor Saat Ini',
+                          value: ticket.currentQueueLabel,
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: _HeroMiniStat(
-                          label: 'Perkiraan',
-                          value: ticket.waitEstimateLabel,
+                          label: 'Di Depan Anda',
+                          value: remaining.toString(),
                         ),
                       ),
                     ],
@@ -755,8 +755,8 @@ class _MetricGrid extends StatelessWidget {
       children: [
         _MetricCard(
           icon: Icons.campaign_outlined,
-          label: 'Dipanggil',
-          value: currentNumber.toString(),
+          label: 'Nomor saat ini',
+          value: ticket.currentQueueLabel,
           color: AppColors.warning,
           backgroundColor: AppColors.warningSoft,
         ),
@@ -769,15 +769,15 @@ class _MetricGrid extends StatelessWidget {
         ),
         _MetricCard(
           icon: Icons.people_alt_outlined,
-          label: 'Sisa antrean',
+          label: 'Di depan Anda',
           value: ticket.remainingBeforeMeLabel,
           color: AppColors.primaryDark,
           backgroundColor: AppColors.primarySoft,
         ),
         _MetricCard(
-          icon: Icons.timer_outlined,
-          label: 'Perkiraan',
-          value: ticket.waitEstimateLabel,
+          icon: Icons.confirmation_number_outlined,
+          label: 'Nomor Anda',
+          value: ticket.queueCode,
           color: AppColors.violet,
           backgroundColor: AppColors.violetSoft,
         ),
