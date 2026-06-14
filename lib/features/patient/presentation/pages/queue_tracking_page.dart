@@ -227,7 +227,8 @@ class _QueueTrackingPageState extends State<QueueTrackingPage> {
                             ],
                           ),
                         ),
-                        if (!isHistoricalDetail && selectedTicket.canCancel) ...[
+                        if (!isHistoricalDetail &&
+                            selectedTicket.canCancel) ...[
                           const SizedBox(height: AppSpacing.md),
                           SizedBox(
                             width: double.infinity,
@@ -686,10 +687,7 @@ class _HeroMiniStat extends StatelessWidget {
 }
 
 class _MetricGrid extends StatelessWidget {
-  const _MetricGrid({
-    required this.ticket,
-    required this.lastNumber,
-  });
+  const _MetricGrid({required this.ticket, required this.lastNumber});
 
   final QueueTicketDetail ticket;
   final int lastNumber;
@@ -728,6 +726,11 @@ class _MetricGrid extends StatelessWidget {
 String _estimatedWaitLabel(int minutes) {
   if (minutes <= 0) return 'Segera';
   return '$minutes menit';
+}
+
+String _jakartaTimeLabel(DateTime value) {
+  final jakartaTime = value.toUtc().add(const Duration(hours: 7));
+  return '${DateFormat('HH:mm').format(jakartaTime)} WIB';
 }
 
 class _MetricCard extends StatelessWidget {
@@ -808,7 +811,7 @@ class _QueueEventTimeline extends StatelessWidget {
   }
 
   String _eventSubtitle(QueueTicketTimelineItem event) {
-    final time = DateFormat('HH:mm').format(event.createdAt.toLocal());
+    final time = _jakartaTimeLabel(event.createdAt);
     final actor = switch (event.actorType) {
       'patient' => 'oleh Anda',
       'staff' => 'oleh petugas',
@@ -837,7 +840,7 @@ class _FallbackTicketTimeline extends StatelessWidget {
         _TimelineStep(
           icon: Icons.access_time_outlined,
           title: 'Masuk antrean',
-          subtitle: DateFormat('HH:mm').format(ticket.createdAt.toLocal()),
+          subtitle: _jakartaTimeLabel(ticket.createdAt),
           isActive: true,
         ),
         _TimelineStep(
@@ -870,7 +873,7 @@ class _FallbackTicketTimeline extends StatelessWidget {
 
   String? _formatNullableTime(DateTime? value) {
     if (value == null) return null;
-    return DateFormat('HH:mm').format(value.toLocal());
+    return _jakartaTimeLabel(value);
   }
 
   DateTime? _finalTime(QueueTicketDetail ticket) {

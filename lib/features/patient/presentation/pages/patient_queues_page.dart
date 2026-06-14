@@ -30,15 +30,9 @@ class PatientQueuesPage extends StatelessWidget {
             parent: BouncingScrollPhysics(),
           ),
           slivers: [
-            // --- PREMIUM INTEGRATED HEADER ---
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  64, // Ruang atas cinematic tanpa AppBar kaku
-                  AppSpacing.lg,
-                  AppSpacing.md,
-                ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _PinnedQueueHeader(
                 child: _CleanEvolvedQueueHeader(
                   activeCode: activeTicket?.queueCode,
                   historyCount: historyTickets.length,
@@ -86,12 +80,30 @@ class PatientQueuesPage extends StatelessWidget {
                 ),
               ),
             ] else
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _PinnedActiveTicketHeader(
-                  ticket: activeTicket,
-                  onTap: () => _openTracking(context, activeTicket),
-                  onCancel: () => _confirmCancel(context),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                  ),
+                  child: const _SectionLabel(
+                    label: 'Antrean Aktif',
+                    isBadgeActive: true,
+                    badgeText: 'Berjalan',
+                  ),
+                ),
+              ),
+            if (activeTicket != null)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                sliver: SliverToBoxAdapter(
+                  child: QueueTicketCard(
+                    ticket: activeTicket,
+                    onTap: () => _openTracking(context, activeTicket),
+                    onCancel: () => _confirmCancel(context),
+                  ),
                 ),
               ),
 
@@ -280,6 +292,45 @@ class PatientQueuesPage extends StatelessWidget {
 // CLEAN INLINE COMPONENT REFACTORING
 // ============================================================================
 
+class _PinnedQueueHeader extends SliverPersistentHeaderDelegate {
+  const _PinnedQueueHeader({required this.child});
+
+  final Widget child;
+
+  static const double _extent = 170;
+
+  @override
+  double get minExtent => _extent;
+
+  @override
+  double get maxExtent => _extent;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: AppColors.backgroundOf(context)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          64,
+          AppSpacing.lg,
+          AppSpacing.md,
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedQueueHeader oldDelegate) {
+    return oldDelegate.child != child;
+  }
+}
+
 class _CleanEvolvedQueueHeader extends StatelessWidget {
   const _CleanEvolvedQueueHeader({
     required this.activeCode,
@@ -380,68 +431,5 @@ class _SectionLabel extends StatelessWidget {
         ),
       ],
     );
-  }
-}
-
-class _PinnedActiveTicketHeader extends SliverPersistentHeaderDelegate {
-  _PinnedActiveTicketHeader({
-    required this.ticket,
-    required this.onTap,
-    required this.onCancel,
-  });
-
-  final QueueTicketDetail ticket;
-  final VoidCallback onTap;
-  final VoidCallback onCancel;
-
-  static const double _extent = 356;
-
-  @override
-  double get minExtent => _extent;
-
-  @override
-  double get maxExtent => _extent;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return DecoratedBox(
-      decoration: BoxDecoration(color: AppColors.backgroundOf(context)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.sm,
-        ),
-        child: Column(
-          children: [
-            const _SectionLabel(
-              label: 'Antrean Aktif',
-              isBadgeActive: true,
-              badgeText: 'Berjalan',
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Expanded(
-              child: QueueTicketCard(
-                ticket: ticket,
-                onTap: onTap,
-                onCancel: onCancel,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _PinnedActiveTicketHeader oldDelegate) {
-    return oldDelegate.ticket != ticket ||
-        oldDelegate.onTap != onTap ||
-        oldDelegate.onCancel != onCancel;
   }
 }
