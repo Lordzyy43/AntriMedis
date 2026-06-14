@@ -34,7 +34,7 @@ class NotificationService {
     await _plugin.show(
       id: queueCode.hashCode,
       title: 'Giliran hampir tiba',
-      body: 'Nomor $queueCode tinggal $remaining antrean di depan.',
+      body: 'Nomor $queueCode tinggal $remaining antrean lagi. Mohon bersiap.',
       notificationDetails: details,
     );
   }
