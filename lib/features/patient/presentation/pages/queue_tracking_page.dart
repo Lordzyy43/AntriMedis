@@ -149,8 +149,6 @@ class _QueueTrackingPageState extends State<QueueTrackingPage> {
                   ],
                   const SizedBox(height: AppSpacing.md),
                   if (selectedTicket.isActive) ...[
-                    const _LiveEstimateNotice(),
-                    const SizedBox(height: AppSpacing.md),
                     _MetricGrid(
                       ticket: selectedTicket,
                       currentNumber: selectedTicket.currentNumber,
@@ -475,46 +473,6 @@ class _NoActiveQueueState extends StatelessWidget {
   }
 }
 
-class _LiveEstimateNotice extends StatelessWidget {
-  const _LiveEstimateNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      backgroundColor: AppColors.primarySoft,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: const Icon(
-              Icons.sensors_outlined,
-              color: AppColors.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          const Expanded(
-            child: Text(
-              'Posisi antrean diperbarui otomatis saat petugas memanggil atau menyelesaikan pasien. Pantau nomor saat ini dan jumlah antrean di depan Anda.',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _TrackingHero extends StatelessWidget {
   const _TrackingHero({
     required this.ticket,
@@ -581,19 +539,6 @@ class _TrackingHero extends StatelessWidget {
                         icon: style.icon,
                         color: style.color,
                         backgroundColor: style.backgroundColor,
-                      ),
-                      const Spacer(),
-                      AppBadge(
-                        label: isActive ? 'Live' : 'Final',
-                        icon: isActive
-                            ? Icons.circle
-                            : Icons.check_circle_outline,
-                        color: isActive
-                            ? AppColors.success
-                            : AppColors.textMuted,
-                        backgroundColor: isActive
-                            ? AppColors.successSoft
-                            : AppColors.surfaceMuted,
                       ),
                     ],
                   ),

@@ -26,7 +26,9 @@ class PatientQueuesPage extends StatelessWidget {
         edgeOffset: 110, // Selaras sempurna di bawah susunan header baru
         color: AppColors.primary,
         child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
           slivers: [
             // --- PREMIUM INTEGRATED HEADER ---
             SliverToBoxAdapter(
@@ -48,43 +50,50 @@ class PatientQueuesPage extends StatelessWidget {
             if (queue.error != null)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                  ),
                   child: AppErrorBanner(message: queue.error!),
                 ),
               ),
 
             // --- SECTION: ACTIVE TICKET ---
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  AppSpacing.md,
-                  AppSpacing.lg,
-                  AppSpacing.sm,
-                ),
-                child: _SectionLabel(
-                  label: 'Antrean Aktif',
-                  isBadgeActive: activeTicket != null,
-                  badgeText: activeTicket != null ? 'Berjalan' : 'Kosong',
+            if (activeTicket == null) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                  ),
+                  child: const _SectionLabel(
+                    label: 'Antrean Aktif',
+                    isBadgeActive: false,
+                    badgeText: 'Kosong',
+                  ),
                 ),
               ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              sliver: SliverToBoxAdapter(
-                child: activeTicket == null
-                    ? const EmptyState(
-                        icon: Icons.confirmation_number_outlined,
-                        title: 'Belum ada antrean aktif',
-                        message: 'Ambil nomor dari jadwal praktik yang tersedia di halaman Home.',
-                      )
-                    : QueueTicketCard(
-                        ticket: activeTicket,
-                        onTap: () => _openTracking(context, activeTicket),
-                        onCancel: () => _confirmCancel(context),
-                      ),
+              const SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                sliver: SliverToBoxAdapter(
+                  child: EmptyState(
+                    icon: Icons.confirmation_number_outlined,
+                    title: 'Belum ada antrean aktif',
+                    message:
+                        'Ambil nomor dari jadwal praktik yang tersedia di halaman Home.',
+                  ),
+                ),
               ),
-            ),
+            ] else
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _PinnedActiveTicketHeader(
+                  ticket: activeTicket,
+                  onTap: () => _openTracking(context, activeTicket),
+                  onCancel: () => _confirmCancel(context),
+                ),
+              ),
 
             // --- SECTION: HISTORY TICKETS ---
             SliverToBoxAdapter(
@@ -106,7 +115,9 @@ class PatientQueuesPage extends StatelessWidget {
             if (queue.isLoading && historyTickets.isEmpty)
               const SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
+                child: Center(
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
               )
             else if (historyTickets.isEmpty)
               const SliverFillRemaining(
@@ -116,13 +127,19 @@ class PatientQueuesPage extends StatelessWidget {
                   child: EmptyState(
                     icon: Icons.history_outlined,
                     title: 'Riwayat masih kosong',
-                    message: 'Tiket selesai, dibatalkan, atau dilewati akan tampil di sini.',
+                    message:
+                        'Tiket selesai, dibatalkan, atau dilewati akan tampil di sini.',
                   ),
                 ),
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, 120),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  120,
+                ),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final ticket = historyTickets[index];
@@ -144,21 +161,22 @@ class PatientQueuesPage extends StatelessWidget {
   }
 
   void _openTracking(BuildContext context, QueueTicketDetail ticket) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => QueueTrackingPage(ticket: ticket)));
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => QueueTrackingPage(ticket: ticket)),
+    );
   }
 
   // --- PREMIUM HIGH-END CUSTOM CONFIRMATION DIALOG ---
   Future<void> _confirmCancel(BuildContext context) async {
-
     final ok = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) {
         return Dialog(
           backgroundColor: AppColors.surfaceOf(context),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           elevation: 0,
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.xl),
@@ -204,11 +222,17 @@ class PatientQueuesPage extends StatelessWidget {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(false),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                          side: BorderSide(
-                            color: AppColors.textMutedOf(context).withValues(alpha: 0.2),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.md,
                           ),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          side: BorderSide(
+                            color: AppColors.textMutedOf(
+                              context,
+                            ).withValues(alpha: 0.2),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: Text(
                           'Kembali',
@@ -225,8 +249,12 @@ class PatientQueuesPage extends StatelessWidget {
                         onPressed: () => Navigator.of(context).pop(true),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.danger,
-                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.md,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: const Text(
                           'Ya, Batalkan',
@@ -253,7 +281,10 @@ class PatientQueuesPage extends StatelessWidget {
 // ============================================================================
 
 class _CleanEvolvedQueueHeader extends StatelessWidget {
-  const _CleanEvolvedQueueHeader({required this.activeCode, required this.historyCount});
+  const _CleanEvolvedQueueHeader({
+    required this.activeCode,
+    required this.historyCount,
+  });
 
   final String? activeCode;
   final int historyCount;
@@ -287,7 +318,9 @@ class _CleanEvolvedQueueHeader extends StatelessWidget {
               child: Text(
                 hasActive ? 'Token: $activeCode' : 'Tidak Ada Tiket Aktif',
                 style: TextStyle(
-                  color: hasActive ? AppColors.primary : AppColors.textMutedOf(context),
+                  color: hasActive
+                      ? AppColors.primary
+                      : AppColors.textMutedOf(context),
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                 ),
@@ -312,7 +345,11 @@ class _CleanEvolvedQueueHeader extends StatelessWidget {
 }
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label, required this.isBadgeActive, required this.badgeText});
+  const _SectionLabel({
+    required this.label,
+    required this.isBadgeActive,
+    required this.badgeText,
+  });
 
   final String label;
   final bool isBadgeActive;
@@ -334,12 +371,77 @@ class _SectionLabel extends StatelessWidget {
         Text(
           badgeText,
           style: TextStyle(
-            color: isBadgeActive ? AppColors.primary : AppColors.textMutedOf(context),
+            color: isBadgeActive
+                ? AppColors.primary
+                : AppColors.textMutedOf(context),
             fontWeight: FontWeight.w800,
             fontSize: 12,
           ),
         ),
       ],
     );
+  }
+}
+
+class _PinnedActiveTicketHeader extends SliverPersistentHeaderDelegate {
+  _PinnedActiveTicketHeader({
+    required this.ticket,
+    required this.onTap,
+    required this.onCancel,
+  });
+
+  final QueueTicketDetail ticket;
+  final VoidCallback onTap;
+  final VoidCallback onCancel;
+
+  static const double _extent = 356;
+
+  @override
+  double get minExtent => _extent;
+
+  @override
+  double get maxExtent => _extent;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: AppColors.backgroundOf(context)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.lg,
+          AppSpacing.sm,
+        ),
+        child: Column(
+          children: [
+            const _SectionLabel(
+              label: 'Antrean Aktif',
+              isBadgeActive: true,
+              badgeText: 'Berjalan',
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Expanded(
+              child: QueueTicketCard(
+                ticket: ticket,
+                onTap: onTap,
+                onCancel: onCancel,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedActiveTicketHeader oldDelegate) {
+    return oldDelegate.ticket != ticket ||
+        oldDelegate.onTap != onTap ||
+        oldDelegate.onCancel != onCancel;
   }
 }

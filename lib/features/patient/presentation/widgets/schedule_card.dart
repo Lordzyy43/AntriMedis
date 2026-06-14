@@ -161,14 +161,6 @@ class ScheduleCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            '${schedule.totalTaken} nomor sudah masuk',
-                            style: TextStyle(
-                              color: AppColors.textMutedOf(context),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -206,7 +198,6 @@ class ScheduleCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                _GuidancePanel(schedule: schedule, status: status),
                 if (schedule.canTakeQueue &&
                     schedule.availabilityReason != 'Siap diambil') ...[
                   const SizedBox(height: AppSpacing.sm),
@@ -456,55 +447,6 @@ class _InsightTile extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GuidancePanel extends StatelessWidget {
-  const _GuidancePanel({required this.schedule, required this.status});
-
-  final ScheduleAvailability schedule;
-  final _ScheduleStatusVisual status;
-
-  @override
-  Widget build(BuildContext context) {
-    final isReady = schedule.canTakeQueue;
-    final color = isReady ? AppColors.primaryDark : status.color;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceOf(context),
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            isReady ? Icons.check_circle_outline : status.icon,
-            size: 16,
-            color: color,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: Text(
-              schedule.patientGuidance,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: isReady ? AppColors.textPrimaryOf(context) : color,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                height: 1.25,
-              ),
             ),
           ),
         ],
