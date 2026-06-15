@@ -35,6 +35,20 @@ class NotificationRepository {
         .eq('id', notificationId);
   }
 
+  Future<void> markAllAsRead() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    await _client
+        .from('notifications')
+        .update({
+          'is_read': true,
+          'read_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+  }
+
   RealtimeChannel subscribeToMyNotifications({
     required void Function() onChanged,
   }) {

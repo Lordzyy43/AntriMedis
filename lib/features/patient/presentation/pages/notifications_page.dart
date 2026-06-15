@@ -16,28 +16,21 @@ class NotificationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<NotificationProvider>();
-    
 
     return Scaffold(
       backgroundColor: AppColors.backgroundOf(context),
       body: RefreshIndicator(
         onRefresh: context.read<NotificationProvider>().load,
-        edgeOffset: 110, // Menyesuaikan posisi spinner agar pas di bawah header kontemporer
+        edgeOffset: 150,
         color: AppColors.primary,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(), // Efek scroll membal elastis khas iOS/Premium Android
+            parent: BouncingScrollPhysics(),
           ),
           slivers: [
-            // --- PREMIUM INTEGRATED HEADER ---
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  64, // Jarak top lebih tinggi untuk kenyamanan visual tanpa AppBar kaku
-                  AppSpacing.lg,
-                  AppSpacing.md,
-                ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _PinnedNotificationsHeader(
                 child: _CleanEvolvedHeader(
                   total: provider.notifications.length,
                   unread: provider.unreadCount,
@@ -49,7 +42,9 @@ class NotificationsPage extends StatelessWidget {
             if (provider.error != null)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                  ),
                   child: AppErrorBanner(message: provider.error!),
                 ),
               ),
@@ -58,7 +53,9 @@ class NotificationsPage extends StatelessWidget {
             if (provider.isLoading && provider.notifications.isEmpty)
               const SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
+                child: Center(
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
               )
             else if (provider.notifications.isEmpty)
               const SliverFillRemaining(
@@ -68,7 +65,8 @@ class NotificationsPage extends StatelessWidget {
                   child: EmptyState(
                     icon: Icons.notifications_none_outlined,
                     title: 'Belum ada notifikasi',
-                    message: 'Pembaruan antrean dan jadwal akan tersimpan di sini.',
+                    message:
+                        'Pembaruan antrean dan jadwal akan tersimpan di sini.',
                   ),
                 ),
               )
@@ -86,7 +84,9 @@ class NotificationsPage extends StatelessWidget {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: AppSpacing.md),
                       key: ValueKey(notification.id),
-                      child: _ElegantNotificationCard(notification: notification),
+                      child: _ElegantNotificationCard(
+                        notification: notification,
+                      ),
                     );
                   }, childCount: provider.notifications.length),
                 ),
@@ -101,6 +101,45 @@ class NotificationsPage extends StatelessWidget {
 // ============================================================================
 // REFACTORED SUB-COMPONENTS
 // ============================================================================
+
+class _PinnedNotificationsHeader extends SliverPersistentHeaderDelegate {
+  const _PinnedNotificationsHeader({required this.child});
+
+  final Widget child;
+
+  static const double _extent = 170;
+
+  @override
+  double get minExtent => _extent;
+
+  @override
+  double get maxExtent => _extent;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: AppColors.backgroundOf(context)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          64,
+          AppSpacing.lg,
+          AppSpacing.md,
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedNotificationsHeader oldDelegate) {
+    return oldDelegate.child != child;
+  }
+}
 
 class _CleanEvolvedHeader extends StatelessWidget {
   const _CleanEvolvedHeader({required this.total, required this.unread});
@@ -127,9 +166,7 @@ class _CleanEvolvedHeader extends StatelessWidget {
             // Tombol interaktif fungsional nan elegan
             if (unread > 0)
               TextButton(
-                onPressed: () {
-                  // Tambahkan fungsi mark all as read dari provider kamu jika ada di masa depan
-                },
+                onPressed: context.read<NotificationProvider>().markAllAsRead,
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.sm,
@@ -163,7 +200,9 @@ class _CleanEvolvedHeader extends StatelessWidget {
               child: Text(
                 unread > 0 ? '$unread Belum Dibaca' : 'Semua Dibaca',
                 style: TextStyle(
-                  color: unread > 0 ? AppColors.primary : AppColors.textMutedOf(context),
+                  color: unread > 0
+                      ? AppColors.primary
+                      : AppColors.textMutedOf(context),
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                 ),
@@ -196,34 +235,46 @@ class _ElegantNotificationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = AppColors.isDark(context);
     final tone = _toneForType(notification.type);
+    final isLatest = !notification.isRead;
 
-    // Konfigurasi warna premium adaptive
-    final cardBgColor = notification.isRead
-        ? AppColors.surfaceOf(context)
-        : (isDark
-              ? tone.color.withValues(alpha: 0.06)
-              : tone.backgroundColor.withValues(alpha: 0.45));
+    final cardBgColor = isLatest
+        ? (isDark ? const Color(0xFF0B3D22) : AppColors.success)
+        : (isDark ? AppColors.successSoftOf(context) : AppColors.successSoft);
 
-    final iconContainerColor = notification.isRead
-        ? AppColors.textMutedOf(context).withValues(alpha: 0.06)
-        : tone.color.withValues(alpha: 0.1);
+    final iconContainerColor = isLatest
+        ? Colors.white.withValues(alpha: 0.18)
+        : AppColors.success.withValues(alpha: isDark ? 0.18 : 0.12);
 
-    final iconColor = notification.isRead ? AppColors.textMutedOf(context) : tone.color;
+    final iconColor = isLatest ? Colors.white : AppColors.success;
+    final titleColor = isLatest
+        ? Colors.white
+        : AppColors.textPrimaryOf(context);
+    final bodyColor = isLatest
+        ? Colors.white.withValues(alpha: 0.88)
+        : AppColors.textPrimaryOf(context).withValues(alpha: 0.78);
+    final metaColor = isLatest
+        ? Colors.white.withValues(alpha: 0.76)
+        : AppColors.textMutedOf(context);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: AppCard(
         onTap: notification.isRead
             ? null
-            : () => context.read<NotificationProvider>().markAsRead(notification.id),
+            : () => context.read<NotificationProvider>().markAsRead(
+                notification.id,
+              ),
         backgroundColor: cardBgColor,
-        padding: EdgeInsets.zero, // Padding diatur manual di dalam agar border strip presisi
+        padding: EdgeInsets
+            .zero, // Padding diatur manual di dalam agar border strip presisi
         child: Container(
           // Garis aksen vertikal tipis di sisi kiri kartu untuk tanda visual indikatif
           decoration: BoxDecoration(
             border: Border(
               left: BorderSide(
-                color: notification.isRead ? Colors.transparent : tone.color,
+                color: isLatest
+                    ? Colors.white.withValues(alpha: 0.72)
+                    : AppColors.success,
                 width: 3.5,
               ),
             ),
@@ -238,7 +289,8 @@ class _ElegantNotificationCard extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: iconContainerColor,
-                  shape: BoxShape.circle, // Bentuk lingkaran terasa lebih modern di list notifikasi
+                  shape: BoxShape
+                      .circle, // Bentuk lingkaran terasa lebih modern di list notifikasi
                 ),
                 child: Icon(tone.icon, color: iconColor, size: 18),
               ),
@@ -256,19 +308,27 @@ class _ElegantNotificationCard extends StatelessWidget {
                           child: Text(
                             notification.title,
                             style: TextStyle(
-                              color: AppColors.textPrimaryOf(context),
-                              fontWeight: notification.isRead ? FontWeight.w700 : FontWeight.w900,
+                              color: titleColor,
+                              fontWeight: isLatest
+                                  ? FontWeight.w900
+                                  : FontWeight.w700,
                               fontSize: 14.5,
                             ),
                           ),
                         ),
-                        if (!notification.isRead)
+                        if (isLatest)
                           Padding(
-                            padding: const EdgeInsets.only(top: 4, left: AppSpacing.xs),
+                            padding: const EdgeInsets.only(
+                              top: 4,
+                              left: AppSpacing.xs,
+                            ),
                             child: Container(
                               width: 7,
                               height: 7,
-                              decoration: BoxDecoration(color: tone.color, shape: BoxShape.circle),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
                             ),
                           ),
                       ],
@@ -277,18 +337,16 @@ class _ElegantNotificationCard extends StatelessWidget {
                     Text(
                       notification.body,
                       style: TextStyle(
-                        color: notification.isRead
-                            ? AppColors.textMutedOf(context)
-                            : AppColors.textPrimaryOf(context).withValues(alpha: 0.8),
+                        color: bodyColor,
                         fontSize: 13,
                         height: 1.4,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      DateFormat('dd MMM yyyy • HH:mm').format(notification.createdAt),
+                      _jakartaDateTimeLabel(notification.createdAt),
                       style: TextStyle(
-                        color: AppColors.textMutedOf(context),
+                        color: metaColor,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
@@ -354,8 +412,17 @@ class _ElegantNotificationCard extends StatelessWidget {
   }
 }
 
+String _jakartaDateTimeLabel(DateTime value) {
+  final jakartaTime = value.toUtc().add(const Duration(hours: 7));
+  return '${DateFormat('dd MMM yyyy - HH:mm').format(jakartaTime)} WIB';
+}
+
 class _NotificationTone {
-  const _NotificationTone({required this.icon, required this.color, required this.backgroundColor});
+  const _NotificationTone({
+    required this.icon,
+    required this.color,
+    required this.backgroundColor,
+  });
 
   final IconData icon;
   final Color color;

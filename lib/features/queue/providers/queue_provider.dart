@@ -141,6 +141,7 @@ class QueueProvider extends ChangeNotifier {
         _activeTicket = null;
         _recentResolvedTicket = ticket;
       }
+      _subscribeActiveTicket();
       final results = await Future.wait([
         _repository.fetchSchedules(),
         _repository.fetchMyTickets(),
@@ -318,9 +319,9 @@ class QueueProvider extends ChangeNotifier {
     QueueTicketDetail ticket,
     String? previousStatus,
   ) async {
-    final nearKey = '${ticket.ticketId}:${ticket.remainingBeforeMe}';
+    final nearKey = '${ticket.ticketId}:ready-soon';
     if (ticket.remainingBeforeMe > 0 &&
-        ticket.remainingBeforeMe <= 3 &&
+        ticket.remainingBeforeMe <= 2 &&
         ticket.status == 'waiting' &&
         _lastNearNotificationKey != nearKey) {
       _lastNearNotificationKey = nearKey;

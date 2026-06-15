@@ -52,158 +52,141 @@ class _PatientHomePageState extends State<PatientHomePage> {
       queue.schedules,
       selectedPolyclinic,
     );
-    final activePolyclinicNames = _activePolyclinicNames(queue.schedules);
-    final takeableCount = queue.polyclinics
-        .where(
-          (polyclinic) =>
-              polyclinic.isActive &&
-              activePolyclinicNames.contains(polyclinic.name),
-        )
-        .length;
-    final inactiveCount = queue.polyclinics.length - takeableCount;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundOf(context),
       body: RefreshIndicator(
         onRefresh: queue.loadHome,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.xl,
-            AppSpacing.lg,
-            104,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
           ),
-          children: [
-            ClinicHero(
-              patientName: profile.profile?.fullName,
-              clinicName: 'Klinik Sehat Sentosa',
-              branchName: clinic?.name ?? 'Cabang Utama',
-              operationalHours: '24 Jam',
-              address:
-                  clinic?.fullAddress ??
-                  'Ambil nomor antrean poli dan pantau giliran Anda dari ponsel.',
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _HomeQuickStats(
-              scheduleCount: queue.polyclinics.length,
-              takeableCount: takeableCount,
-              inactiveCount: inactiveCount,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _QueueReadinessBanner(
-              isLoading: queue.isLoading,
-              hasActiveTicket: hasActiveTicket,
-              needsProfileCompletion: needsProfileCompletion,
-              takeableCount: takeableCount,
-              scheduleCount: queue.polyclinics.length,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            if (queue.error != null) ...[
-              AppErrorBanner(
-                message: queue.error!,
-                actionLabel: 'Muat ulang',
-                onAction: queue.loadHome,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-            if (needsProfileCompletion) ...[
-              _ProfileGuardNotice(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        const ProfileCompletionPage(closeAfterSave: true),
-                  ),
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _StickyClinicHeroHeader(
+                child: ClinicHero(
+                  patientName: profile.profile?.fullName,
+                  clinicName: 'Klinik Sehat Sentosa',
+                  branchName: clinic?.name ?? 'Cabang Utama',
+                  operationalHours: '24 Jam',
+                  address:
+                      clinic?.fullAddress ??
+                      'Ambil nomor antrean poli dan pantau giliran Anda dari ponsel.',
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-            if (activeTicket != null) ...[
-              ActiveTicketCard(onTap: () => _openTracking(context)),
-              const SizedBox(height: AppSpacing.xl),
-            ],
-            _SectionHeader(
-              title: 'Pilih Poliklinik',
-              subtitle: 'Filter layanan sesuai tujuan kunjungan Anda',
-              actionLabel: selectedPolyclinic == _allPolyclinics
-                  ? null
-                  : 'Reset',
-              onAction: queue.isLoading
-                  ? null
-                  : () {
-                      setState(() => _selectedPolyclinic = _allPolyclinics);
-                    },
             ),
-            const SizedBox(height: AppSpacing.sm),
-            if (queue.polyclinics.isNotEmpty)
-              PolyclinicFilter(
-                options: polyclinicOptions,
-                selected: selectedPolyclinic,
-                onSelected: (value) {
-                  setState(() => _selectedPolyclinic = value);
-                },
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                104,
               ),
-            if (queue.polyclinics.isNotEmpty)
-              const SizedBox(height: AppSpacing.lg),
-            _SectionHeader(
-              title: 'Poli Aktif Hari Ini',
-              subtitle: _scheduleSectionSubtitle(
-                context: context,
-                visibleCount: visibleSchedules.length,
-                isRealtime: queue.isScheduleRealtimeActive,
-                lastSyncedAt: queue.lastScheduleSyncedAt,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            if (queue.isLoading && queue.polyclinics.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 48),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (queue.polyclinics.isEmpty)
-              EmptyState(
-                icon: Icons.event_busy_outlined,
-                title: 'Jadwal belum tersedia',
-                message:
-                    'Jadwal antrean hari ini belum dibuka. Coba muat ulang beberapa saat lagi.',
-                actionLabel: 'Muat ulang',
-                onAction: queue.loadHome,
-              )
-            else if (visibleSchedules.isEmpty)
-              const EmptyState(
-                icon: Icons.manage_search_outlined,
-                title: 'Poli tidak ditemukan',
-                message: 'Coba pilih filter poli lain atau muat ulang data.',
-              )
-            else ...[
-              _PolyclinicStatusList(
-                polyclinics: _visiblePolyclinics(
-                  queue.polyclinics,
-                  selectedPolyclinic,
-                ),
-                schedules: queue.schedules,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ...visibleSchedules.map((schedule) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: ScheduleCard(
-                    schedule: schedule,
-                    isDisabled:
-                        hasActiveTicket ||
-                        queue.isLoading ||
-                        needsProfileCompletion ||
-                        !schedule.canTakeQueue,
-                    disabledLabel: _scheduleButtonLabel(
-                      schedule: schedule,
-                      hasActiveTicket: hasActiveTicket,
-                      isLoading: queue.isLoading,
-                      needsProfileCompletion: needsProfileCompletion,
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  if (queue.error != null) ...[
+                    AppErrorBanner(
+                      message: queue.error!,
+                      actionLabel: 'Muat ulang',
+                      onAction: queue.loadHome,
                     ),
-                    onTakeQueue: () => _takeQueue(context, schedule),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                  if (needsProfileCompletion) ...[
+                    _ProfileGuardNotice(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const ProfileCompletionPage(closeAfterSave: true),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                  if (activeTicket != null) ...[
+                    ActiveTicketCard(onTap: () => _openTracking(context)),
+                    const SizedBox(height: AppSpacing.xl),
+                  ],
+                  const _SectionHeader(
+                    title: 'Pilih Poliklinik',
+                    subtitle: 'Filter layanan sesuai tujuan kunjungan Anda',
                   ),
-                );
-              }),
-            ],
+                  const SizedBox(height: AppSpacing.sm),
+                  if (queue.polyclinics.isNotEmpty)
+                    PolyclinicFilter(
+                      options: polyclinicOptions,
+                      selected: selectedPolyclinic,
+                      onSelected: (value) {
+                        setState(() => _selectedPolyclinic = value);
+                      },
+                    ),
+                  if (queue.polyclinics.isNotEmpty)
+                    const SizedBox(height: AppSpacing.lg),
+                  _SectionHeader(
+                    title: 'Poli Aktif Hari Ini',
+                    subtitle: _scheduleSectionSubtitle(
+                      context: context,
+                      visibleCount: visibleSchedules.length,
+                      isRealtime: queue.isScheduleRealtimeActive,
+                      lastSyncedAt: queue.lastScheduleSyncedAt,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  if (queue.isLoading && queue.polyclinics.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 48),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (queue.polyclinics.isEmpty)
+                    EmptyState(
+                      icon: Icons.event_busy_outlined,
+                      title: 'Jadwal belum tersedia',
+                      message:
+                          'Jadwal antrean hari ini belum dibuka. Coba muat ulang beberapa saat lagi.',
+                      actionLabel: 'Muat ulang',
+                      onAction: queue.loadHome,
+                    )
+                  else if (visibleSchedules.isEmpty)
+                    const EmptyState(
+                      icon: Icons.manage_search_outlined,
+                      title: 'Poli tidak ditemukan',
+                      message:
+                          'Coba pilih filter poli lain atau muat ulang data.',
+                    )
+                  else ...[
+                    _PolyclinicStatusList(
+                      polyclinics: _visiblePolyclinics(
+                        queue.polyclinics,
+                        selectedPolyclinic,
+                      ),
+                      schedules: queue.schedules,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    ...visibleSchedules.map((schedule) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                        child: ScheduleCard(
+                          schedule: schedule,
+                          isDisabled:
+                              hasActiveTicket ||
+                              queue.isLoading ||
+                              needsProfileCompletion ||
+                              !schedule.canTakeQueue,
+                          disabledLabel: _scheduleButtonLabel(
+                            schedule: schedule,
+                            hasActiveTicket: hasActiveTicket,
+                            isLoading: queue.isLoading,
+                            needsProfileCompletion: needsProfileCompletion,
+                          ),
+                          onTakeQueue: () => _takeQueue(context, schedule),
+                        ),
+                      );
+                    }),
+                  ],
+                ]),
+              ),
+            ),
           ],
         ),
       ),
@@ -269,11 +252,6 @@ class _PatientHomePageState extends State<PatientHomePage> {
                 '${schedule.polyclinicName} - ${schedule.doctorName}',
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Jam praktik ${schedule.startTime}-${schedule.endTime}. '
-                'Nomor antrean berlaku untuk sesi hari ini dan dipanggil sesuai urutan nomor.',
-              ),
               const SizedBox(height: AppSpacing.md),
               _ConfirmQueueFact(
                 icon: Icons.groups_2_outlined,
@@ -285,12 +263,6 @@ class _PatientHomePageState extends State<PatientHomePage> {
                 icon: Icons.campaign_outlined,
                 label: 'Nomor saat ini',
                 value: schedule.currentQueueLabel,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              _ConfirmQueueFact(
-                icon: Icons.info_outline,
-                label: 'Catatan',
-                value: schedule.patientGuidance,
               ),
             ],
           ),
@@ -314,13 +286,6 @@ class _PatientHomePageState extends State<PatientHomePage> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const QueueTrackingPage()));
-  }
-
-  Set<String> _activePolyclinicNames(List<ScheduleAvailability> schedules) {
-    return {
-      for (final schedule in schedules)
-        if (schedule.canTakeQueue) schedule.polyclinicName,
-    };
   }
 
   List<String> _polyclinicOptions(List<PolyclinicOption> polyclinics) {
@@ -399,6 +364,45 @@ class _PatientHomePageState extends State<PatientHomePage> {
       return '$visibleCount sesi poli ditampilkan - $realtimeLabel';
     }
     return '$visibleCount sesi poli ditampilkan - $realtimeLabel, terakhir $syncLabel';
+  }
+}
+
+class _StickyClinicHeroHeader extends SliverPersistentHeaderDelegate {
+  const _StickyClinicHeroHeader({required this.child});
+
+  final Widget child;
+
+  static const double _extent = 262;
+
+  @override
+  double get minExtent => _extent;
+
+  @override
+  double get maxExtent => _extent;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: AppColors.backgroundOf(context)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.xl,
+          AppSpacing.lg,
+          AppSpacing.sm,
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _StickyClinicHeroHeader oldDelegate) {
+    return oldDelegate.child != child;
   }
 }
 
@@ -578,129 +582,11 @@ class _ConfirmQueueFact extends StatelessWidget {
   }
 }
 
-class _HomeQuickStats extends StatelessWidget {
-  const _HomeQuickStats({
-    required this.scheduleCount,
-    required this.takeableCount,
-    required this.inactiveCount,
-  });
-
-  final int scheduleCount;
-  final int takeableCount;
-  final int inactiveCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _QuickStatTile(
-            icon: Icons.event_available_outlined,
-            label: 'Jadwal',
-            value: scheduleCount.toString(),
-            color: AppColors.secondary,
-            backgroundColor: AppColors.secondarySoftOf(context),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: _QuickStatTile(
-            icon: Icons.task_alt_outlined,
-            label: 'Bisa diambil',
-            value: takeableCount.toString(),
-            color: AppColors.success,
-            backgroundColor: AppColors.successSoftOf(context),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: _QuickStatTile(
-            icon: Icons.event_busy_outlined,
-            label: 'Tidak aktif',
-            value: inactiveCount.toString(),
-            color: AppColors.primaryDark,
-            backgroundColor: AppColors.primarySoftOf(context),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _QuickStatTile extends StatelessWidget {
-  const _QuickStatTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.backgroundColor,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-  final Color backgroundColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            value,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: AppColors.textPrimaryOf(context),
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: AppColors.textMutedOf(context),
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.title,
-    required this.subtitle,
-    this.actionLabel,
-    this.onAction,
-  });
+  const _SectionHeader({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
-  final String? actionLabel;
-  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -731,153 +617,9 @@ class _SectionHeader extends StatelessWidget {
             ],
           ),
         ),
-        if (actionLabel != null) ...[
-          const SizedBox(width: AppSpacing.sm),
-          TextButton(onPressed: onAction, child: Text(actionLabel!)),
-        ],
       ],
     );
   }
-}
-
-class _QueueReadinessBanner extends StatelessWidget {
-  const _QueueReadinessBanner({
-    required this.isLoading,
-    required this.hasActiveTicket,
-    required this.needsProfileCompletion,
-    required this.takeableCount,
-    required this.scheduleCount,
-  });
-
-  final bool isLoading;
-  final bool hasActiveTicket;
-  final bool needsProfileCompletion;
-  final int takeableCount;
-  final int scheduleCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final state = _state(context);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: state.backgroundColor,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: state.color.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceOf(context),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(state.icon, color: state.color, size: 20),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  state.title,
-                  style: TextStyle(
-                    color: AppColors.textPrimaryOf(context),
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  state.message,
-                  style: TextStyle(
-                    color: AppColors.textMutedOf(context),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  _ReadinessState _state(BuildContext context) {
-    if (isLoading) {
-      return _ReadinessState(
-        icon: Icons.sync_outlined,
-        color: AppColors.secondary,
-        backgroundColor: AppColors.secondarySoftOf(context),
-        title: 'Sinkronisasi antrean',
-        message: 'Data jadwal dan tiket sedang dimuat dari klinik.',
-      );
-    }
-    if (needsProfileCompletion) {
-      return _ReadinessState(
-        icon: Icons.verified_user_outlined,
-        color: AppColors.warning,
-        backgroundColor: AppColors.warningSoftOf(context),
-        title: 'Profil perlu dilengkapi',
-        message: 'Lengkapi data pasien sebelum mengambil nomor antrean.',
-      );
-    }
-    if (hasActiveTicket) {
-      return _ReadinessState(
-        icon: Icons.confirmation_number_outlined,
-        color: AppColors.primaryDark,
-        backgroundColor: AppColors.primarySoftOf(context),
-        title: 'Anda punya antrean aktif',
-        message: 'Pantau nomor Anda dan tetap siap saat giliran mendekat.',
-      );
-    }
-    if (takeableCount > 0) {
-      return _ReadinessState(
-        icon: Icons.task_alt_outlined,
-        color: AppColors.success,
-        backgroundColor: AppColors.successSoftOf(context),
-        title: '$takeableCount jadwal siap diambil',
-        message: 'Pilih poli dan dokter tujuan, lalu ambil nomor antrean.',
-      );
-    }
-    if (scheduleCount > 0) {
-      return _ReadinessState(
-        icon: Icons.lock_clock_outlined,
-        color: AppColors.warning,
-        backgroundColor: AppColors.warningSoftOf(context),
-        title: 'Belum ada jadwal yang bisa diambil',
-        message:
-            'Jadwal hari ini ada, tetapi sesi belum dibuka klinik, kuota penuh, atau jam layanan sudah selesai.',
-      );
-    }
-    return _ReadinessState(
-      icon: Icons.event_busy_outlined,
-      color: AppColors.textMuted,
-      backgroundColor: AppColors.surfaceMutedOf(context),
-      title: 'Jadwal belum tersedia',
-      message: 'Muat ulang setelah klinik membuka jadwal antrean hari ini.',
-    );
-  }
-}
-
-class _ReadinessState {
-  const _ReadinessState({
-    required this.icon,
-    required this.color,
-    required this.backgroundColor,
-    required this.title,
-    required this.message,
-  });
-
-  final IconData icon;
-  final Color color;
-  final Color backgroundColor;
-  final String title;
-  final String message;
 }
 
 class _ProfileGuardNotice extends StatelessWidget {

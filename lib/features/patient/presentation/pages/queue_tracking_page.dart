@@ -105,127 +105,147 @@ class _QueueTrackingPageState extends State<QueueTrackingPage> {
       ),
       body: selectedTicket == null
           ? const _NoActiveQueueState()
-          : RefreshIndicator(
-              onRefresh: () => _refresh(selectedTicket),
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  AppSpacing.sm,
-                  AppSpacing.lg,
-                  112,
-                ),
-                children: [
-                  if (queue.error != null) ...[
-                    AppErrorBanner(
-                      message: queue.error!,
-                      actionLabel: 'Muat ulang',
-                      onAction: isHistoricalDetail
-                          ? null
-                          : queue.refreshActiveTicket,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                  ],
-                  _TrackingHero(
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                  ),
+                  child: _TrackingHero(
                     ticket: selectedTicket,
                     queueCode: selectedTicket.queueCode,
                     progress: selectedTicket.progress,
                     status: selectedTicket.status,
                     title:
                         '${selectedTicket.polyclinicName} - ${selectedTicket.doctorName}',
-                    currentNumber: selectedTicket.currentNumber,
-                    remaining: selectedTicket.remainingBeforeMe,
                   ),
-                  if (!selectedTicket.isActive) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    _FinalResultPanel(ticket: selectedTicket),
-                  ],
-                  if (selectedTicket.statusReason?.trim().isNotEmpty ??
-                      false) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    _StatusReasonNotice(
-                      status: selectedTicket.status,
-                      reason: selectedTicket.statusReason!,
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.md),
-                  if (selectedTicket.isActive) ...[
-                    const _LiveEstimateNotice(),
-                    const SizedBox(height: AppSpacing.md),
-                    _MetricGrid(
-                      ticket: selectedTicket,
-                      currentNumber: selectedTicket.currentNumber,
-                      lastNumber: selectedTicket.lastNumber,
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.md),
-                  AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Timeline antrean',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        _isTimelineLoading
-                            ? const Text(
-                                'Memuat timeline...',
-                                style: TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              )
-                            : (_timeline ?? []).isEmpty
-                            ? _FallbackTicketTimeline(ticket: selectedTicket)
-                            : _QueueEventTimeline(events: _timeline!),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Detail klinik & jadwal',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        const _DetailRow('Klinik', 'Klinik Sehat Sentosa'),
-                        _DetailRow('Cabang', selectedTicket.branchName),
-                        if (selectedTicket.branchAddress != null &&
-                            selectedTicket.branchAddress!.trim().isNotEmpty)
-                          _DetailRow('Alamat', selectedTicket.branchAddress!),
-                        _DetailRow('Poli', selectedTicket.polyclinicName),
-                        _DetailRow('Dokter', selectedTicket.doctorName),
-                        _DetailRow(
-                          'Tanggal',
-                          DateFormat(
-                            'dd MMMM yyyy',
-                          ).format(selectedTicket.scheduleDate),
-                        ),
-                        _DetailRow(
-                          'Jam praktik',
-                          '${selectedTicket.startTime}-${selectedTicket.endTime}',
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!isHistoricalDetail && selectedTicket.canCancel) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: queue.isLoading
-                            ? null
-                            : () => _confirmCancel(context),
-                        icon: const Icon(Icons.cancel_outlined),
-                        label: const Text('Batalkan Antrean'),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => _refresh(selectedTicket),
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        0,
+                        AppSpacing.lg,
+                        112,
                       ),
+                      children: [
+                        if (queue.error != null) ...[
+                          AppErrorBanner(
+                            message: queue.error!,
+                            actionLabel: 'Muat ulang',
+                            onAction: isHistoricalDetail
+                                ? null
+                                : queue.refreshActiveTicket,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
+                        if (!selectedTicket.isActive) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          _FinalResultPanel(ticket: selectedTicket),
+                        ],
+                        if (selectedTicket.statusReason?.trim().isNotEmpty ??
+                            false) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          _StatusReasonNotice(
+                            status: selectedTicket.status,
+                            reason: selectedTicket.statusReason!,
+                          ),
+                        ],
+                        const SizedBox(height: AppSpacing.md),
+                        if (selectedTicket.isActive) ...[
+                          _MetricGrid(
+                            ticket: selectedTicket,
+                            lastNumber: selectedTicket.lastNumber,
+                          ),
+                        ],
+                        const SizedBox(height: AppSpacing.md),
+                        AppCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Timeline antrean',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              _isTimelineLoading
+                                  ? const Text(
+                                      'Memuat timeline...',
+                                      style: TextStyle(
+                                        color: AppColors.textMuted,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    )
+                                  : (_timeline ?? []).isEmpty
+                                  ? _FallbackTicketTimeline(
+                                      ticket: selectedTicket,
+                                    )
+                                  : _QueueEventTimeline(events: _timeline!),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        AppCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Detail klinik & jadwal',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              const _DetailRow(
+                                'Klinik',
+                                'Klinik Sehat Sentosa',
+                              ),
+                              _DetailRow('Cabang', selectedTicket.branchName),
+                              if (selectedTicket.branchAddress != null &&
+                                  selectedTicket.branchAddress!
+                                      .trim()
+                                      .isNotEmpty)
+                                _DetailRow(
+                                  'Alamat',
+                                  selectedTicket.branchAddress!,
+                                ),
+                              _DetailRow('Poli', selectedTicket.polyclinicName),
+                              _DetailRow('Dokter', selectedTicket.doctorName),
+                              _DetailRow(
+                                'Tanggal',
+                                DateFormat(
+                                  'dd MMMM yyyy',
+                                ).format(selectedTicket.scheduleDate),
+                              ),
+                              _DetailRow(
+                                'Jam praktik',
+                                '${selectedTicket.startTime}-${selectedTicket.endTime}',
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!isHistoricalDetail &&
+                            selectedTicket.canCancel) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: queue.isLoading
+                                  ? null
+                                  : () => _confirmCancel(context),
+                              icon: const Icon(Icons.cancel_outlined),
+                              label: const Text('Batalkan Antrean'),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
-                ],
-              ),
+                  ),
+                ),
+              ],
             ),
     );
   }
@@ -475,46 +495,6 @@ class _NoActiveQueueState extends StatelessWidget {
   }
 }
 
-class _LiveEstimateNotice extends StatelessWidget {
-  const _LiveEstimateNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      backgroundColor: AppColors.primarySoft,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: const Icon(
-              Icons.sensors_outlined,
-              color: AppColors.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          const Expanded(
-            child: Text(
-              'Posisi antrean diperbarui otomatis saat petugas memanggil atau menyelesaikan pasien. Pantau nomor saat ini dan jumlah antrean di depan Anda.',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _TrackingHero extends StatelessWidget {
   const _TrackingHero({
     required this.ticket,
@@ -522,8 +502,6 @@ class _TrackingHero extends StatelessWidget {
     required this.progress,
     required this.status,
     required this.title,
-    required this.currentNumber,
-    required this.remaining,
   });
 
   final QueueTicketDetail ticket;
@@ -531,8 +509,6 @@ class _TrackingHero extends StatelessWidget {
   final double progress;
   final String status;
   final String title;
-  final int currentNumber;
-  final int remaining;
 
   @override
   Widget build(BuildContext context) {
@@ -581,19 +557,6 @@ class _TrackingHero extends StatelessWidget {
                         icon: style.icon,
                         color: style.color,
                         backgroundColor: style.backgroundColor,
-                      ),
-                      const Spacer(),
-                      AppBadge(
-                        label: isActive ? 'Live' : 'Final',
-                        icon: isActive
-                            ? Icons.circle
-                            : Icons.check_circle_outline,
-                        color: isActive
-                            ? AppColors.success
-                            : AppColors.textMuted,
-                        backgroundColor: isActive
-                            ? AppColors.successSoft
-                            : AppColors.surfaceMuted,
                       ),
                     ],
                   ),
@@ -651,13 +614,6 @@ class _TrackingHero extends StatelessWidget {
                         child: _HeroMiniStat(
                           label: 'Nomor Saat Ini',
                           value: ticket.currentQueueLabel,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: _HeroMiniStat(
-                          label: 'Di Depan Anda',
-                          value: remaining.toString(),
                         ),
                       ),
                     ],
@@ -731,14 +687,9 @@ class _HeroMiniStat extends StatelessWidget {
 }
 
 class _MetricGrid extends StatelessWidget {
-  const _MetricGrid({
-    required this.ticket,
-    required this.currentNumber,
-    required this.lastNumber,
-  });
+  const _MetricGrid({required this.ticket, required this.lastNumber});
 
   final QueueTicketDetail ticket;
-  final int currentNumber;
   final int lastNumber;
 
   @override
@@ -754,9 +705,9 @@ class _MetricGrid extends StatelessWidget {
       ),
       children: [
         _MetricCard(
-          icon: Icons.campaign_outlined,
-          label: 'Nomor saat ini',
-          value: ticket.currentQueueLabel,
+          icon: Icons.timer_outlined,
+          label: 'Perkiraan',
+          value: _estimatedWaitLabel(ticket.estimatedWaitMinutes),
           color: AppColors.warning,
           backgroundColor: AppColors.warningSoft,
         ),
@@ -767,23 +718,19 @@ class _MetricGrid extends StatelessWidget {
           color: AppColors.secondary,
           backgroundColor: AppColors.secondarySoft,
         ),
-        _MetricCard(
-          icon: Icons.people_alt_outlined,
-          label: 'Di depan Anda',
-          value: ticket.remainingBeforeMeLabel,
-          color: AppColors.primaryDark,
-          backgroundColor: AppColors.primarySoft,
-        ),
-        _MetricCard(
-          icon: Icons.confirmation_number_outlined,
-          label: 'Nomor Anda',
-          value: ticket.queueCode,
-          color: AppColors.violet,
-          backgroundColor: AppColors.violetSoft,
-        ),
       ],
     );
   }
+}
+
+String _estimatedWaitLabel(int minutes) {
+  if (minutes <= 0) return 'Segera';
+  return '$minutes menit';
+}
+
+String _jakartaTimeLabel(DateTime value) {
+  final jakartaTime = value.toUtc().add(const Duration(hours: 7));
+  return '${DateFormat('HH:mm').format(jakartaTime)} WIB';
 }
 
 class _MetricCard extends StatelessWidget {
@@ -864,7 +811,7 @@ class _QueueEventTimeline extends StatelessWidget {
   }
 
   String _eventSubtitle(QueueTicketTimelineItem event) {
-    final time = DateFormat('HH:mm').format(event.createdAt.toLocal());
+    final time = _jakartaTimeLabel(event.createdAt);
     final actor = switch (event.actorType) {
       'patient' => 'oleh Anda',
       'staff' => 'oleh petugas',
@@ -893,7 +840,7 @@ class _FallbackTicketTimeline extends StatelessWidget {
         _TimelineStep(
           icon: Icons.access_time_outlined,
           title: 'Masuk antrean',
-          subtitle: DateFormat('HH:mm').format(ticket.createdAt.toLocal()),
+          subtitle: _jakartaTimeLabel(ticket.createdAt),
           isActive: true,
         ),
         _TimelineStep(
@@ -926,7 +873,7 @@ class _FallbackTicketTimeline extends StatelessWidget {
 
   String? _formatNullableTime(DateTime? value) {
     if (value == null) return null;
-    return DateFormat('HH:mm').format(value.toLocal());
+    return _jakartaTimeLabel(value);
   }
 
   DateTime? _finalTime(QueueTicketDetail ticket) {

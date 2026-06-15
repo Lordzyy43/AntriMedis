@@ -23,7 +23,7 @@ class QueueTicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = queueStatusStyle(ticket.status);
-    final createdAt = DateFormat('dd MMM yyyy, HH:mm').format(ticket.createdAt);
+    final createdAt = _jakartaDateTimeLabel(ticket.createdAt);
 
     return AppCard(
       onTap: onTap,
@@ -185,6 +185,11 @@ class QueueTicketCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _jakartaDateTimeLabel(DateTime value) {
+  final jakartaTime = value.toUtc().add(const Duration(hours: 7));
+  return '${DateFormat('dd MMM yyyy, HH:mm').format(jakartaTime)} WIB';
 }
 
 class _MetaRow extends StatelessWidget {

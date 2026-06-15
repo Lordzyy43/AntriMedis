@@ -34,6 +34,7 @@ class _PatientShellPageState extends State<PatientShellPage> {
   @override
   Widget build(BuildContext context) {
     final unreadCount = context.watch<NotificationProvider>().unreadCount;
+    final visibleUnreadCount = _selectedIndex == 2 ? 0 : unreadCount;
 
     return Scaffold(
       extendBody: true,
@@ -60,14 +61,14 @@ class _PatientShellPageState extends State<PatientShellPage> {
                   constraints: const BoxConstraints(maxWidth: 380),
                   child: _FloatingPatientNav(
                     selectedIndex: _selectedIndex,
-                    unreadCount: unreadCount,
+                    unreadCount: visibleUnreadCount,
                     onSelected: (index) {
                       setState(() => _selectedIndex = index);
                       if (index == 1) {
                         context.read<QueueProvider>().refreshTickets();
                       }
                       if (index == 2) {
-                        context.read<NotificationProvider>().load();
+                        context.read<NotificationProvider>().openInbox();
                       }
                     },
                   ),
