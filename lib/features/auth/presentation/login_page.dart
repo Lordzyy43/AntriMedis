@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../../core/config/app_colors.dart';
 import '../../../core/config/app_spacing.dart';
-import '../../../core/widgets/app_badge.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_error_banner.dart';
 import '../providers/auth_provider.dart';
@@ -21,6 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  
   bool _isRegister = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -34,206 +34,268 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  void _toggleAuthMode() {
+    context.read<AuthProvider>().clearMessages();
+    setState(() {
+      _isRegister = !_isRegister;
+      // Reset form validation saat berpindah mode
+      _formKey.currentState?.reset();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
 
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.xxl),
-          children: [
-            const SizedBox(height: AppSpacing.xl),
-            const _LoginHeader(),
-            const SizedBox(height: AppSpacing.xxl),
-            if (auth.error != null) ...[
-              AppErrorBanner(message: auth.error!),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-            if (auth.notice != null) ...[
-              _AuthNotice(message: auth.notice!),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-            AppCard(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _isRegister ? 'Daftar pasien' : 'Masuk pasien',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      _isRegister
-                          ? 'Buat akun untuk mengambil nomor antrean.'
-                          : 'Masuk dengan akun pasien yang sudah terdaftar.',
-                      style: const TextStyle(color: AppColors.textMuted),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    if (_isRegister) ...[
-                      TextFormField(
-                        controller: _nameController,
-                        textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(
-                          labelText: 'Nama lengkap',
-                          prefixIcon: Icon(Icons.badge_outlined),
-                        ),
-                        validator: (value) =>
-                            value == null || value.trim().length < 3
-                            ? 'Nama minimal 3 karakter'
-                            : null,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                    ],
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      autofillHints: const [AutofillHints.email],
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.mail_outline),
-                      ),
-                      validator: _validateEmail,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      textInputAction: _isRegister
-                          ? TextInputAction.next
-                          : TextInputAction.done,
-                      autofillHints: [
-                        _isRegister
-                            ? AutofillHints.newPassword
-                            : AutofillHints.password,
-                      ],
-                      decoration:
-                          const InputDecoration(
-                            labelText: 'Password',
-                            prefixIcon: Icon(Icons.lock_outline),
-                          ).copyWith(
-                            suffixIcon: IconButton(
-                              tooltip: _obscurePassword
-                                  ? 'Tampilkan password'
-                                  : 'Sembunyikan password',
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.lg,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - (AppSpacing.lg * 2),
+                ),
+                child: Center(
+                  child: Container(
+                    // Membatasi lebar maksimal card agar tetap proporsional di tablet/layar lebar
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (auth.error != null) ...[
+                          AppErrorBanner(message: auth.error!),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
+                        if (auth.notice != null) ...[
+                          _AuthNotice(message: auth.notice!),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
+                        
+                        // Card Utama dengan Animasi Ukuran saat Form Berubah
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          child: AppCard(
+                            padding: const EdgeInsets.all(AppSpacing.xl),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  const _LoginHeader(),
+                                  const SizedBox(height: AppSpacing.xl),
+                                  
+                                  // Judul Keterangan Mode Form
+                                  Text(
+                                    _isRegister ? 'Daftar Akun Pasien' : 'Masuk Akun Pasien',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    _isRegister
+                                        ? 'Buat akun baru untuk mengambil nomor antrean online.'
+                                        : 'Silakan masuk dengan akun yang sudah terdaftar.',
+                                    style: const TextStyle(
+                                      color: AppColors.textMuted, 
+                                      fontSize: 13,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: AppSpacing.xl),
+                                  
+                                  // Field: Nama Lengkap (Hanya muncul saat Register dengan Animasi)
+                                  AnimatedCrossFade(
+                                    firstChild: const SizedBox.shrink(),
+                                    secondChild: Padding(
+                                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                                      child: TextFormField(
+                                        controller: _nameController,
+                                        textInputAction: TextInputAction.next,
+                                        keyboardType: TextInputType.name,
+                                        autofillHints: const [AutofillHints.name],
+                                        decoration: const InputDecoration(
+                                          labelText: 'Nama Lengkap',
+                                          prefixIcon: Icon(Icons.badge_outlined, size: 22),
+                                        ),
+                                        validator: (value) {
+                                          if (!_isRegister) return null;
+                                          return value == null || value.trim().length < 3
+                                              ? 'Nama minimal 3 karakter'
+                                              : null;
+                                        },
+                                      ),
+                                    ),
+                                    crossFadeState: _isRegister
+                                        ? CrossFadeState.showSecond
+                                        : CrossFadeState.showFirst,
+                                    duration: const Duration(milliseconds: 200),
+                                  ),
+                                  
+                                  // Field: Email
+                                  TextFormField(
+                                    controller: _emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.next,
+                                    autofillHints: const [AutofillHints.email],
+                                    decoration: const InputDecoration(
+                                      labelText: 'Email',
+                                      prefixIcon: Icon(Icons.mail_outline, size: 22),
+                                    ),
+                                    validator: _validateEmail,
+                                  ),
+                                  const SizedBox(height: AppSpacing.md),
+                                  
+                                  // Field: Password
+                                  TextFormField(
+                                    controller: _passwordController,
+                                    obscureText: _obscurePassword,
+                                    textInputAction: _isRegister
+                                        ? TextInputAction.next
+                                        : TextInputAction.done,
+                                    autofillHints: [
+                                      _isRegister
+                                          ? AutofillHints.newPassword
+                                          : AutofillHints.password,
+                                    ],
+                                    decoration: InputDecoration(
+                                      labelText: 'Password',
+                                      prefixIcon: const Icon(Icons.lock_outline, size: 22),
+                                      suffixIcon: IconButton(
+                                        tooltip: _obscurePassword
+                                            ? 'Tampilkan password'
+                                            : 'Sembunyikan password',
+                                        icon: Icon(
+                                          _obscurePassword
+                                              ? Icons.visibility_outlined
+                                              : Icons.visibility_off_outlined,
+                                          size: 22,
+                                        ),
+                                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                      ),
+                                    ),
+                                    validator: _validatePassword,
+                                    onFieldSubmitted: (_) {
+                                      if (!_isRegister) _submit();
+                                    },
+                                  ),
+                                  
+                                  // Field: Konfirmasi Password (Hanya muncul saat Register dengan Animasi)
+                                  AnimatedCrossFade(
+                                    firstChild: const SizedBox.shrink(),
+                                    secondChild: Padding(
+                                      padding: const EdgeInsets.only(top: AppSpacing.md),
+                                      child: TextFormField(
+                                        controller: _confirmPasswordController,
+                                        obscureText: _obscureConfirmPassword,
+                                        textInputAction: TextInputAction.done,
+                                        autofillHints: const [AutofillHints.newPassword],
+                                        decoration: InputDecoration(
+                                          labelText: 'Konfirmasi Password',
+                                          prefixIcon: const Icon(Icons.lock_reset_outlined, size: 22),
+                                          suffixIcon: IconButton(
+                                            tooltip: _obscureConfirmPassword
+                                                ? 'Tampilkan password'
+                                                : 'Sembunyikan password',
+                                            icon: Icon(
+                                              _obscureConfirmPassword
+                                                  ? Icons.visibility_outlined
+                                                  : Icons.visibility_off_outlined,
+                                              size: 22,
+                                            ),
+                                            onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                                          ),
+                                        ),
+                                        validator: (value) {
+                                          if (!_isRegister) return null;
+                                          return _validateConfirmPassword(value);
+                                        },
+                                        onFieldSubmitted: (_) => _submit(),
+                                      ),
+                                    ),
+                                    crossFadeState: _isRegister
+                                        ? CrossFadeState.showSecond
+                                        : CrossFadeState.showFirst,
+                                    duration: const Duration(milliseconds: 200),
+                                  ),
+                                  
+                                  // Tombol Lupa Password
+                                  if (!_isRegister) ...[
+                                    const SizedBox(height: AppSpacing.sm),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: TextButton(
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: const Size(50, 30),
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        onPressed: auth.isLoading ? null : _forgotPassword,
+                                        child: const Text(
+                                          'Lupa password?',
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: AppSpacing.xl),
+                                  
+                                  // Tombol Submit Utama
+                                  ElevatedButton.icon(
+                                    onPressed: auth.isLoading ? null : _submit,
+                                    icon: auth.isLoading
+                                        ? const SizedBox.square(
+                                            dimension: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : Icon(_isRegister ? Icons.person_add_alt_1 : Icons.login),
+                                    label: Text(_isRegister ? 'Daftar Sekarang' : 'Masuk'),
+                                  ),
+                                  const SizedBox(height: AppSpacing.lg),
+                                  const _AuthDivider(),
+                                  const SizedBox(height: AppSpacing.lg),
+                                  
+                                  // Tombol Google OAuth
+                                  OutlinedButton.icon(
+                                    onPressed: auth.isLoading ? null : _signInWithGoogle,
+                                    icon: const Icon(Icons.g_mobiledata, size: 28),
+                                    label: const Text('Lanjutkan dengan Google'),
+                                  ),
+                                  const SizedBox(height: AppSpacing.md),
+                                  
+                                  // Pindah Mode (Login / Register)
+                                  TextButton(
+                                    onPressed: auth.isLoading ? null : _toggleAuthMode,
+                                    child: Text(
+                                      _isRegister
+                                          ? 'Sudah punya akun? Masuk di sini'
+                                          : 'Belum punya akun? Daftar Pasien Baru',
+                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
                             ),
                           ),
-                      validator: _validatePassword,
-                      onFieldSubmitted: (_) {
-                        if (!_isRegister) _submit();
-                      },
-                    ),
-                    if (_isRegister) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      TextFormField(
-                        controller: _confirmPasswordController,
-                        obscureText: _obscureConfirmPassword,
-                        textInputAction: TextInputAction.done,
-                        autofillHints: const [AutofillHints.newPassword],
-                        decoration:
-                            const InputDecoration(
-                              labelText: 'Konfirmasi password',
-                              prefixIcon: Icon(Icons.lock_reset_outlined),
-                            ).copyWith(
-                              suffixIcon: IconButton(
-                                tooltip: _obscureConfirmPassword
-                                    ? 'Tampilkan password'
-                                    : 'Sembunyikan password',
-                                icon: Icon(
-                                  _obscureConfirmPassword
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscureConfirmPassword =
-                                        !_obscureConfirmPassword;
-                                  });
-                                },
-                              ),
-                            ),
-                        validator: _validateConfirmPassword,
-                        onFieldSubmitted: (_) => _submit(),
-                      ),
-                    ],
-                    if (!_isRegister) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: auth.isLoading ? null : _forgotPassword,
-                          child: const Text('Lupa password?'),
                         ),
-                      ),
-                    ],
-                    const SizedBox(height: AppSpacing.xl),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: auth.isLoading ? null : _submit,
-                        icon: auth.isLoading
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Icon(
-                                _isRegister
-                                    ? Icons.person_add_alt_1
-                                    : Icons.login,
-                              ),
-                        label: Text(_isRegister ? 'Daftar' : 'Masuk'),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    const _AuthDivider(),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: auth.isLoading ? null : _signInWithGoogle,
-                        icon: const Icon(Icons.g_mobiledata, size: 28),
-                        label: const Text('Lanjutkan dengan Google'),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton(
-                        onPressed: auth.isLoading
-                            ? null
-                            : () {
-                                auth.clearMessages();
-                                setState(() => _isRegister = !_isRegister);
-                              },
-                        child: Text(
-                          _isRegister
-                              ? 'Sudah punya akun? Masuk'
-                              : 'Belum punya akun? Daftar pasien',
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -299,6 +361,51 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+// Header Logo & Brand Terpusat di Dalam Card
+class _LoginHeader extends StatelessWidget {
+  const _LoginHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 72,
+          height: 72,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceOf(context),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: AppColors.borderOf(context)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1A0EA5A4),
+                blurRadius: 20,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Image.asset(
+            'assets/images/AntriMedis_tr.png',
+            fit: BoxFit.contain,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          'AntriMedis',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.8,
+            color: AppColors.textPrimaryOf(context),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _AuthNotice extends StatelessWidget {
   const _AuthNotice({required this.message});
 
@@ -343,86 +450,12 @@ class _AuthDivider extends StatelessWidget {
             'atau',
             style: TextStyle(
               color: AppColors.textMuted,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
             ),
           ),
         ),
         Expanded(child: Divider()),
-      ],
-    );
-  }
-}
-
-class _LoginHeader extends StatelessWidget {
-  const _LoginHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 62,
-              height: 62,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceOf(context),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.borderOf(context)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x330EA5A4),
-                    blurRadius: 18,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Image.asset(
-                'assets/images/antrimedis_logo.png',
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AntriMedis',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimaryOf(context),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                AppBadge(
-                  label: 'Antrean aktif',
-                  icon: Icons.bolt,
-                  color: AppColors.isDark(context)
-                      ? AppColors.primary
-                      : AppColors.primaryDark,
-                  backgroundColor: AppColors.primarySoftOf(context),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        Text(
-          'Antrean klinik tanpa menunggu lama.',
-          style: Theme.of(context).textTheme.headlineLarge,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-          'Ambil nomor online, pantau nomor berjalan, dan lihat jumlah antrean di depan Anda.',
-          style: TextStyle(
-            fontSize: 16,
-            height: 1.45,
-            color: AppColors.textMutedOf(context),
-          ),
-        ),
       ],
     );
   }

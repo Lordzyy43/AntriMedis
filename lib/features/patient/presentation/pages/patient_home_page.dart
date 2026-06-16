@@ -150,19 +150,12 @@ class _PatientHomePageState extends State<PatientHomePage> {
                   else if (visibleSchedules.isEmpty)
                     const EmptyState(
                       icon: Icons.manage_search_outlined,
-                      title: 'Poli tidak ditemukan',
+                      title: 'Tidak Ada Jadwal Yang Aktif',
                       message:
                           'Coba pilih filter poli lain atau muat ulang data.',
                     )
                   else ...[
-                    _PolyclinicStatusList(
-                      polyclinics: _visiblePolyclinics(
-                        queue.polyclinics,
-                        selectedPolyclinic,
-                      ),
-                      schedules: queue.schedules,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
+                    // Komponen _PolyclinicStatusList telah dihapus dari sini
                     ...visibleSchedules.map((schedule) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.lg),
@@ -295,16 +288,6 @@ class _PatientHomePageState extends State<PatientHomePage> {
     ];
   }
 
-  List<PolyclinicOption> _visiblePolyclinics(
-    List<PolyclinicOption> polyclinics,
-    String selectedPolyclinic,
-  ) {
-    if (selectedPolyclinic == _allPolyclinics) return polyclinics;
-    return polyclinics
-        .where((polyclinic) => polyclinic.name == selectedPolyclinic)
-        .toList();
-  }
-
   List<ScheduleAvailability> _visibleSchedules(
     List<ScheduleAvailability> schedules,
     String selectedPolyclinic,
@@ -312,10 +295,10 @@ class _PatientHomePageState extends State<PatientHomePage> {
     final filtered = selectedPolyclinic == _allPolyclinics
         ? [...schedules]
         : schedules
-              .where(
-                (schedule) => schedule.polyclinicName == selectedPolyclinic,
-              )
-              .toList();
+            .where(
+              (schedule) => schedule.polyclinicName == selectedPolyclinic,
+            )
+            .toList();
 
     filtered.sort((first, second) {
       final firstRank = _scheduleRank(first);
@@ -404,134 +387,6 @@ class _StickyClinicHeroHeader extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _StickyClinicHeroHeader oldDelegate) {
     return oldDelegate.child != child;
   }
-}
-
-class _PolyclinicStatusList extends StatelessWidget {
-  const _PolyclinicStatusList({
-    required this.polyclinics,
-    required this.schedules,
-  });
-
-  final List<PolyclinicOption> polyclinics;
-  final List<ScheduleAvailability> schedules;
-
-  @override
-  Widget build(BuildContext context) {
-    final statuses = _statuses();
-
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        children: [
-          for (var index = 0; index < statuses.length; index++) ...[
-            _PolyclinicStatusRow(status: statuses[index]),
-            if (index < statuses.length - 1)
-              const Divider(height: AppSpacing.lg),
-          ],
-        ],
-      ),
-    );
-  }
-
-  List<_PolyclinicStatus> _statuses() {
-    final byName = <String, List<ScheduleAvailability>>{};
-    for (final schedule in schedules) {
-      byName.putIfAbsent(schedule.polyclinicName, () => []).add(schedule);
-    }
-
-    return polyclinics.map((polyclinic) {
-      final sessions = byName[polyclinic.name] ?? [];
-      final active =
-          polyclinic.isActive &&
-          sessions.any((schedule) => schedule.canTakeQueue);
-      return _PolyclinicStatus(
-        name: polyclinic.name,
-        active: active,
-        sessionCount: sessions.length,
-      );
-    }).toList()..sort((first, second) {
-      if (first.active != second.active) return first.active ? -1 : 1;
-      return first.name.compareTo(second.name);
-    });
-  }
-}
-
-class _PolyclinicStatusRow extends StatelessWidget {
-  const _PolyclinicStatusRow({required this.status});
-
-  final _PolyclinicStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = status.active ? AppColors.success : AppColors.textMuted;
-    final background = status.active
-        ? AppColors.successSoftOf(context)
-        : AppColors.surfaceMutedOf(context);
-
-    return Row(
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Icon(
-            status.active ? Icons.task_alt_outlined : Icons.block_outlined,
-            color: color,
-            size: 18,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                status.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppColors.textPrimaryOf(context),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                '${status.sessionCount} sesi hari ini',
-                style: TextStyle(
-                  color: AppColors.textMutedOf(context),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Text(
-          status.active ? 'Aktif' : 'Tidak Aktif',
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PolyclinicStatus {
-  const _PolyclinicStatus({
-    required this.name,
-    required this.active,
-    required this.sessionCount,
-  });
-
-  final String name;
-  final bool active;
-  final int sessionCount;
 }
 
 class _ConfirmQueueFact extends StatelessWidget {

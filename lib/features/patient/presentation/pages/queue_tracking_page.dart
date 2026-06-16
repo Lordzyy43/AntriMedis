@@ -148,14 +148,6 @@ class _QueueTrackingPageState extends State<QueueTrackingPage> {
                           const SizedBox(height: AppSpacing.md),
                           _FinalResultPanel(ticket: selectedTicket),
                         ],
-                        if (selectedTicket.statusReason?.trim().isNotEmpty ??
-                            false) ...[
-                          const SizedBox(height: AppSpacing.md),
-                          _StatusReasonNotice(
-                            status: selectedTicket.status,
-                            reason: selectedTicket.statusReason!,
-                          ),
-                        ],
                         const SizedBox(height: AppSpacing.md),
                         if (selectedTicket.isActive) ...[
                           _MetricGrid(
@@ -290,60 +282,6 @@ class _QueueTrackingPageState extends State<QueueTrackingPage> {
   }
 }
 
-class _StatusReasonNotice extends StatelessWidget {
-  const _StatusReasonNotice({required this.status, required this.reason});
-
-  final String status;
-  final String reason;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = queueStatusStyle(status);
-
-    return AppCard(
-      backgroundColor: style.backgroundColor,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(style.icon, color: style.color, size: 20),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Catatan ${style.label.toLowerCase()}',
-                  style: TextStyle(
-                    color: style.color,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  reason,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _FinalResultPanel extends StatelessWidget {
   const _FinalResultPanel({required this.ticket});
 
@@ -399,11 +337,18 @@ class _FinalResultPanel extends StatelessWidget {
   }
 
   _FinalCopy _copyFor(QueueTicketDetail ticket) {
-    final reason = ticket.statusReason?.toLowerCase() ?? '';
-    final byPatient = reason.contains('pasien') || reason.contains('oleh anda');
+    final reasonText = ticket.statusReason?.trim() ?? '';
+    final reasonLower = reasonText.toLowerCase();
+    
+    final byPatient = reasonLower.contains('pasien') || reasonLower.contains('oleh anda');
     final byClosedSession =
-        reason.contains('sesi ditutup') ||
-        reason.contains('sesi layanan telah ditutup');
+        reasonLower.contains('sesi ditutup') ||
+        reasonLower.contains('sesi layanan telah ditutup');
+
+    String appendReason(String defaultMessage) {
+      if (reasonText.isEmpty || byPatient) return defaultMessage;
+      return '$defaultMessage Catatan: $reasonText';
+    }
 
     return switch (ticket.status) {
       'completed' => const _FinalCopy(
@@ -417,12 +362,11 @@ class _FinalResultPanel extends StatelessWidget {
             : 'Antrean dibatalkan petugas',
         message: byPatient
             ? 'Anda membatalkan antrean ini saat status masih menunggu.'
-            : 'Petugas klinik membatalkan antrean ini. Lihat catatan status untuk alasannya.',
+            : appendReason('Petugas klinik membatalkan antrean ini.'),
       ),
-      'skipped' => const _FinalCopy(
+      'skipped' => _FinalCopy(
         title: 'Nomor antrean dilewati',
-        message:
-            'Nomor Anda dilewati oleh petugas. Lihat catatan status dan hubungi petugas bila perlu.',
+        message: appendReason('Nomor Anda dilewati oleh petugas.'),
       ),
       'expired' => _FinalCopy(
         title: byClosedSession ? 'Sesi layanan ditutup' : 'Antrean kedaluwarsa',
@@ -704,10 +648,11 @@ class _MetricGrid extends StatelessWidget {
         childAspectRatio: 1.35,
       ),
       children: [
+        // Card Perkiraan diganti menjadi Sisa Antrean
         _MetricCard(
-          icon: Icons.timer_outlined,
-          label: 'Perkiraan',
-          value: _estimatedWaitLabel(ticket.estimatedWaitMinutes),
+          icon: Icons.people_outline,
+          label: 'Sisa antrean',
+          value: '${ticket.remainingBeforeMe} orang',
           color: AppColors.warning,
           backgroundColor: AppColors.warningSoft,
         ),
@@ -721,11 +666,6 @@ class _MetricGrid extends StatelessWidget {
       ],
     );
   }
-}
-
-String _estimatedWaitLabel(int minutes) {
-  if (minutes <= 0) return 'Segera';
-  return '$minutes menit';
 }
 
 String _jakartaTimeLabel(DateTime value) {

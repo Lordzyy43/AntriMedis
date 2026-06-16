@@ -27,6 +27,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     super.dispose();
   }
 
+  // Menambahkan validasi yang sama persis dengan halaman Login
+  String? _validatePassword(String? value) {
+    final password = value ?? '';
+    if (password.length < 8) return 'Password minimal 8 karakter';
+    if (!RegExp(r'[A-Za-z]').hasMatch(password) ||
+        !RegExp(r'\d').hasMatch(password)) {
+      return 'Gunakan kombinasi huruf dan angka';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -72,10 +83,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                           ),
                         ),
                       ),
-                      validator: (value) =>
-                          value == null || value.trim().length < 8
-                          ? 'Password minimal 8 karakter'
-                          : null,
+                      // Menggunakan fungsi validasi yang baru
+                      validator: _validatePassword,
                     ),
                     const SizedBox(height: AppSpacing.md),
                     TextFormField(
@@ -141,7 +150,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           saved
               ? 'Password berhasil diperbarui.'
               : context.read<AuthProvider>().error ??
-                    'Password belum bisa diperbarui.',
+                  'Password belum bisa diperbarui.',
         ),
       ),
     );
