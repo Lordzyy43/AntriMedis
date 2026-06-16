@@ -51,12 +51,22 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     super.dispose();
   }
 
+  // Helper untuk menghitung progres pengisian field secara realtime di UI
+  double _calculateCurrentProgress() {
+    var completed = 0;
+    if (_nameController.text.trim().length >= 3) completed++;
+    if (_phoneController.text.trim().isNotEmpty) completed++;
+    if (_gender != null && _gender!.trim().isNotEmpty) completed++;
+    if (_birthDate != null) completed++;
+    return (completed / 4).clamp(0.0, 1.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileProvider = context.watch<ProfileProvider>();
     final profile = profileProvider.profile;
     final user = context.watch<AuthProvider>().user;
-    final email = user?.email;
+    final email = user?.userMetadata?['email'] as String? ?? user?.email;
     final googleAvatarUrl =
         user?.userMetadata?['avatar_url'] as String? ??
         user?.userMetadata?['picture'] as String?;
@@ -69,9 +79,12 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       _gender = profile.gender;
     }
 
+    // Mengambil nilai progres dinamis berdasarkan inputan form saat ini
+    final currentProgress = _calculateCurrentProgress();
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEditing ? '' : 'Lengkapi Profil'),
+        title: Text(widget.isEditing ? 'Profil Pasien' : 'Lengkapi Profil'),
       ),
       body: SafeArea(
         child: ListView(
@@ -82,25 +95,24 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             112,
           ),
           children: [
+            // Header yang menampung info persentase dinamis tunggal
             _Header(
               isEditing: widget.isEditing,
               profile: profile,
               email: email,
               googleAvatarUrl: googleAvatarUrl,
               isAvatarSaving: profileProvider.isAvatarSaving,
-              onSyncAvatar: () => _syncGoogleAvatar(googleAvatarUrl),
               onChangeAvatar: _showAvatarPicker,
-              onRemoveAvatar: _confirmRemoveAvatar,
+              currentProgress: currentProgress,
             ),
             const SizedBox(height: AppSpacing.xl),
             if (profileProvider.error != null) ...[
               AppErrorBanner(message: profileProvider.error!),
               const SizedBox(height: AppSpacing.lg),
             ],
-            if (widget.isEditing) ...[
-              _ProfileCompletionNotice(profile: profile),
-              const SizedBox(height: AppSpacing.lg),
-            ],
+            
+            // _ProfileCompletionNotice ganda yang sebelumnya di sini telah dihapus total
+            
             AppCard(
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Form(
@@ -108,11 +120,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _CardTitle(
+                    const _CardTitle(
                       icon: Icons.assignment_ind_outlined,
                       title: 'Data Pribadi',
-                      subtitle:
-                          'Data ini membantu klinik mengenali pasien saat nomor antrean dipanggil.',
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     TextFormField(
@@ -131,6 +141,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         labelText: 'Nama lengkap',
                         prefixIcon: Icon(Icons.badge_outlined),
                       ),
+                      onChanged: (_) => setState(() {}), // Memicu update persentase di header
                       validator: (value) =>
                           value == null || value.trim().length < 3
                           ? 'Nama minimal 3 karakter'
@@ -145,6 +156,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         labelText: 'Nomor HP',
                         prefixIcon: Icon(Icons.phone_outlined),
                       ),
+                      onChanged: (_) => setState(() {}), // Memicu update persentase di header
                       validator: (value) =>
                           value == null || value.trim().length < 8
                           ? 'Nomor HP belum valid'
@@ -152,7 +164,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     DropdownButtonFormField<String>(
-                      initialValue: _gender,
+                      value: _gender,
                       decoration: const InputDecoration(
                         labelText: 'Gender',
                         prefixIcon: Icon(Icons.wc_outlined),
@@ -166,10 +178,6 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                           value: 'female',
                           child: Text('Perempuan'),
                         ),
-                        DropdownMenuItem(
-                          value: 'other',
-                          child: Text('Lainnya'),
-                        ),
                       ],
                       onChanged: (value) => setState(() => _gender = value),
                       validator: (value) =>
@@ -177,7 +185,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     InkWell(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderRadius: BorderRadius.circular(8),
                       onTap: _pickBirthDate,
                       child: InputDecorator(
                         decoration: const InputDecoration(
@@ -275,25 +283,6 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     );
   }
 
-  Future<void> _syncGoogleAvatar(String? googleAvatarUrl) async {
-    if (googleAvatarUrl == null || googleAvatarUrl.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Avatar Google tidak tersedia untuk akun ini.'),
-        ),
-      );
-      return;
-    }
-
-    final ok = await context.read<ProfileProvider>().updateAvatarUrl(
-      googleAvatarUrl,
-    );
-    if (!mounted || !ok) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Avatar berhasil disinkronkan.')),
-    );
-  }
-
   Future<void> _showAvatarPicker() async {
     final action = await showModalBottomSheet<_AvatarAction>(
       context: context,
@@ -318,11 +307,6 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                 Text(
                   'Ubah avatar',
                   style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                const Text(
-                  'Pilih foto yang jelas agar klinik lebih mudah mengenali pasien.',
-                  style: TextStyle(color: AppColors.textMuted, height: 1.4),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 _AvatarActionTile(
@@ -445,7 +429,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     if (code.contains('camera_access_denied') ||
         code.contains('photo_access_denied') ||
         code.contains('permission')) {
-      return 'Izin kamera atau galeri belum diberikan. Aktifkan izin aplikasi di pengaturan perangkat.';
+      return 'Izin kamera atau galeri belum diberikan. Aktifkan izin aplikasi di pengaturan pengaturan perangkat.';
     }
     return 'Avatar belum bisa dipilih. Coba gunakan foto lain atau ulangi beberapa saat lagi.';
   }
@@ -468,11 +452,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _CardTitle(
+                const _CardTitle(
                   icon: Icons.privacy_tip_outlined,
                   title: 'Keamanan dan Privasi',
-                  subtitle:
-                      'Aktifkan PIN agar aplikasi meminta verifikasi sebelum membuka beranda.',
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Consumer<AppSettingsProvider>(
@@ -557,11 +539,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _CardTitle(
+                  const _CardTitle(
                     icon: Icons.pin_outlined,
                     title: 'Atur PIN Keamanan',
-                    subtitle:
-                        'Gunakan 4-6 digit. PIN ini diminta sebelum membuka beranda.',
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   TextFormField(
@@ -686,6 +666,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   }
 }
 
+// Komponen Header tunggal yang menampilkan persentase secara real-time
 class _Header extends StatelessWidget {
   const _Header({
     required this.isEditing,
@@ -693,9 +674,8 @@ class _Header extends StatelessWidget {
     required this.email,
     required this.googleAvatarUrl,
     required this.isAvatarSaving,
-    required this.onSyncAvatar,
     required this.onChangeAvatar,
-    required this.onRemoveAvatar,
+    required this.currentProgress,
   });
 
   final bool isEditing;
@@ -703,9 +683,8 @@ class _Header extends StatelessWidget {
   final String? email;
   final String? googleAvatarUrl;
   final bool isAvatarSaving;
-  final VoidCallback onSyncAvatar;
   final VoidCallback onChangeAvatar;
-  final VoidCallback onRemoveAvatar;
+  final double currentProgress; // Nilai progres realtime yang dikirim dari form
 
   @override
   Widget build(BuildContext context) {
@@ -714,8 +693,8 @@ class _Header extends StatelessWidget {
         ? 'Pasien AntriMedis'
         : name;
     final avatarUrl = profile?.avatarUrl ?? googleAvatarUrl;
-    final completion = _completionScore(profile);
-    final statusLabel = profile?.isComplete == true
+    
+    final statusLabel = currentProgress == 1.0
         ? 'Profil lengkap'
         : 'Perlu dilengkapi';
 
@@ -734,8 +713,8 @@ class _Header extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(AppRadius.lg),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
               ),
             ),
             child: Row(
@@ -810,7 +789,7 @@ class _Header extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${(completion * 100).round()}%',
+                      '${(currentProgress * 100).round()}%',
                       style: TextStyle(
                         color: AppColors.isDark(context)
                             ? AppColors.primary
@@ -825,167 +804,19 @@ class _Header extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
                     minHeight: 8,
-                    value: completion,
-                    color: profile?.isComplete == true
+                    value: currentProgress,
+                    color: currentProgress == 1.0
                         ? AppColors.success
                         : AppColors.primary,
                     backgroundColor: AppColors.borderOf(context),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  isEditing
-                      ? 'Perbarui data dan avatar yang digunakan klinik untuk mengenali pasien.'
-                      : 'Lengkapi profil pasien sebelum mengambil nomor antrean.',
-                  style: TextStyle(
-                    color: AppColors.textMutedOf(context),
-                    height: 1.4,
-                  ),
-                ),
-                if (googleAvatarUrl != null &&
-                    googleAvatarUrl!.trim().isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: isAvatarSaving ? null : onChangeAvatar,
-                          icon: const Icon(Icons.add_a_photo_outlined),
-                          label: const Text('Upload Avatar'),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: isAvatarSaving ? null : onSyncAvatar,
-                          icon: const Icon(Icons.sync_outlined),
-                          label: const Text('Dari Google'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  const SizedBox(height: AppSpacing.md),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: isAvatarSaving ? null : onChangeAvatar,
-                      icon: const Icon(Icons.add_a_photo_outlined),
-                      label: const Text('Upload Avatar'),
-                    ),
-                  ),
-                ],
-                if (profile?.avatarUrl?.trim().isNotEmpty ?? false) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton.icon(
-                      onPressed: isAvatarSaving ? null : onRemoveAvatar,
-                      icon: const Icon(Icons.delete_outline),
-                      label: const Text('Hapus Avatar'),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
         ],
       ),
     );
-  }
-
-  double _completionScore(PatientProfile? profile) {
-    if (profile == null) return 0.25;
-    var completed = 0;
-    if (profile.fullName.trim().length >= 3) completed++;
-    if (profile.phoneNumber?.trim().isNotEmpty ?? false) completed++;
-    if (profile.gender?.trim().isNotEmpty ?? false) completed++;
-    if (profile.birthDate != null) completed++;
-    return (completed / 4).clamp(0.0, 1.0);
-  }
-}
-
-class _ProfileCompletionNotice extends StatelessWidget {
-  const _ProfileCompletionNotice({required this.profile});
-
-  final PatientProfile? profile;
-
-  @override
-  Widget build(BuildContext context) {
-    final completion = _completionScore(profile);
-    final isComplete = profile?.isComplete == true;
-
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: isComplete ? AppColors.successSoft : AppColors.warningSoft,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(
-              isComplete
-                  ? Icons.verified_user_outlined
-                  : Icons.assignment_late_outlined,
-              color: isComplete ? AppColors.success : AppColors.warning,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        isComplete
-                            ? 'Profil siap digunakan'
-                            : 'Lengkapi profil Anda',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '${(completion * 100).round()}%',
-                      style: const TextStyle(
-                        color: AppColors.primaryDark,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    minHeight: 6,
-                    value: completion,
-                    color: isComplete ? AppColors.success : AppColors.primary,
-                    backgroundColor: AppColors.border,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  double _completionScore(PatientProfile? profile) {
-    if (profile == null) return 0.25;
-    var completed = 0;
-    if (profile.fullName.trim().length >= 3) completed++;
-    if (profile.phoneNumber?.trim().isNotEmpty ?? false) completed++;
-    if (profile.gender?.trim().isNotEmpty ?? false) completed++;
-    if (profile.birthDate != null) completed++;
-    return (completed / 4).clamp(0.0, 1.0);
   }
 }
 
@@ -993,48 +824,32 @@ class _CardTitle extends StatelessWidget {
   const _CardTitle({
     required this.icon,
     required this.title,
-    required this.subtitle,
   });
 
   final IconData icon;
   final String title;
-  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
           width: 38,
           height: 38,
           decoration: BoxDecoration(
             color: AppColors.primarySoft,
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: AppColors.primaryDark, size: 20),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  color: AppColors.textMuted,
-                  height: 1.35,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          child: Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
         ),
       ],
@@ -1069,8 +884,6 @@ class _AccountActionPanel extends StatelessWidget {
           const _CardTitle(
             icon: Icons.settings_outlined,
             title: 'Pengaturan Aplikasi',
-            subtitle:
-                'Kelola keamanan, tampilan, bantuan, dan informasi aplikasi.',
           ),
           const SizedBox(height: AppSpacing.lg),
           _AccountActionTile(
@@ -1096,7 +909,7 @@ class _AccountActionPanel extends StatelessWidget {
                   height: 40,
                   decoration: BoxDecoration(
                     color: AppColors.secondarySoftOf(context),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     settings.isDarkMode
@@ -1189,7 +1002,7 @@ class _AccountActionTile extends StatelessWidget {
         height: 40,
         decoration: BoxDecoration(
           color: isDanger ? AppColors.dangerSoft : AppColors.primarySoftOf(context),
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: color, size: 20),
       ),
@@ -1235,7 +1048,7 @@ class _AvatarActionTile extends StatelessWidget {
         height: 42,
         decoration: BoxDecoration(
           color: isDanger ? AppColors.dangerSoft : AppColors.primarySoft,
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: color),
       ),
