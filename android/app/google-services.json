@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "22480247523",
+    "project_id": "antrimedis-4c0a5",
+    "storage_bucket": "antrimedis-4c0a5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:22480247523:android:8a8d619386ac8e660a03d6",
+        "android_client_info": {
+          "package_name": "com.antrimedis.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDl8Vjps3nvx0vAIJywDPnGXb6NHXTWmuI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

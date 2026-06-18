@@ -44,6 +44,8 @@ dependencies:
   image_picker: ^1.2.2
   shared_preferences: ^2.5.3
   crypto: ^3.0.6
+  firebase_core: ^4.11.0
+  firebase_messaging: ^16.4.0
 
 dev_dependencies:
   flutter_test:

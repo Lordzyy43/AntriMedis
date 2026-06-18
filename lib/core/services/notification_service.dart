@@ -7,11 +7,17 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
+  final Map<String, DateTime> _recentDedupKeys = {};
 
   Future<void> initialize() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const settings = InitializationSettings(android: android);
     await _plugin.initialize(settings: settings);
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(_queueUpdatesChannel);
     await _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -23,19 +29,25 @@ class NotificationService {
     required String queueCode,
     required int remaining,
   }) async {
-    const android = AndroidNotificationDetails(
-      'queue_updates',
-      'Pembaruan antrean',
-      channelDescription: 'Notifikasi perkembangan antrean AntriMedis',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
-    const details = NotificationDetails(android: android);
-    await _plugin.show(
+    await _showQueueNotification(
       id: queueCode.hashCode,
       title: 'Giliran hampir tiba',
       body: 'Nomor $queueCode tinggal $remaining antrean lagi. Mohon bersiap.',
-      notificationDetails: details,
+      dedupKey: 'queue_near:$queueCode',
+    );
+  }
+
+  Future<void> showRemoteMessage({
+    required int id,
+    required String title,
+    required String body,
+    String? dedupKey,
+  }) async {
+    await _showQueueNotification(
+      id: id,
+      title: title,
+      body: body,
+      dedupKey: dedupKey,
     );
   }
 
@@ -44,6 +56,7 @@ class NotificationService {
       id: Object.hash(queueCode, 'called'),
       title: 'Sedang dipanggil',
       body: 'Nomor $queueCode sedang dipanggil. Silakan menuju poli.',
+      dedupKey: 'queue_called:$queueCode',
     );
   }
 
@@ -52,6 +65,7 @@ class NotificationService {
       id: Object.hash(queueCode, 'skipped'),
       title: 'Antrean dilewati',
       body: 'Nomor $queueCode dilewati oleh petugas.',
+      dedupKey: 'queue_skipped:$queueCode',
     );
   }
 
@@ -59,7 +73,9 @@ class NotificationService {
     await _showQueueNotification(
       id: Object.hash(queueCode, 'missed'),
       title: 'Terlewat',
-      body: 'Nomor $queueCode terlewat. Tunggu panggil ulang setelah antrean reguler selesai.',
+      body:
+          'Nomor $queueCode terlewat. Tunggu panggil ulang setelah antrean reguler selesai.',
+      dedupKey: 'queue_missed:$queueCode',
     );
   }
 
@@ -68,6 +84,7 @@ class NotificationService {
       id: Object.hash(queueCode, 'cancelled'),
       title: 'Antrean dibatalkan',
       body: 'Nomor $queueCode sudah dibatalkan.',
+      dedupKey: 'queue_cancelled:$queueCode',
     );
   }
 
@@ -76,6 +93,7 @@ class NotificationService {
       id: Object.hash(queueCode, 'expired'),
       title: 'Antrean kedaluwarsa',
       body: 'Nomor $queueCode tidak lagi aktif karena sesi layanan ditutup.',
+      dedupKey: 'queue_expired:$queueCode',
     );
   }
 
@@ -83,14 +101,11 @@ class NotificationService {
     required int id,
     required String title,
     required String body,
+    String? dedupKey,
   }) async {
-    const android = AndroidNotificationDetails(
-      'queue_updates',
-      'Pembaruan antrean',
-      channelDescription: 'Notifikasi perkembangan antrean AntriMedis',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
+    if (!_shouldShow(dedupKey ?? '$title:$body')) return;
+
+    const android = _queueUpdatesDetails;
     const details = NotificationDetails(android: android);
     await _plugin.show(
       id: id,
@@ -99,4 +114,30 @@ class NotificationService {
       notificationDetails: details,
     );
   }
+
+  bool _shouldShow(String dedupKey) {
+    final now = DateTime.now();
+    _recentDedupKeys.removeWhere(
+      (_, shownAt) => now.difference(shownAt) > const Duration(seconds: 20),
+    );
+    if (_recentDedupKeys.containsKey(dedupKey)) return false;
+
+    _recentDedupKeys[dedupKey] = now;
+    return true;
+  }
 }
+
+const _queueUpdatesChannel = AndroidNotificationChannel(
+  'queue_updates',
+  'Pembaruan antrean',
+  description: 'Notifikasi perkembangan antrean AntriMedis',
+  importance: Importance.high,
+);
+
+const _queueUpdatesDetails = AndroidNotificationDetails(
+  'queue_updates',
+  'Pembaruan antrean',
+  channelDescription: 'Notifikasi perkembangan antrean AntriMedis',
+  importance: Importance.high,
+  priority: Priority.high,
+);

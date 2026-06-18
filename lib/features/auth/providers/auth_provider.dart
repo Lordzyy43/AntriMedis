@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/services/push_notification_service.dart';
 import '../data/auth_repository.dart';
 
 class AuthProvider extends ChangeNotifier {
-  AuthProvider(this._repository);
+  AuthProvider(this._repository, this._pushNotificationService);
 
   final AuthRepository _repository;
+  final PushNotificationService _pushNotificationService;
   StreamSubscription<AuthState>? _subscription;
 
   User? _user;
@@ -33,16 +35,25 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void bootstrap() {
+    unawaited(_pushNotificationService.initialize());
     _user = _repository.currentUser;
+    if (_user case final user?) {
+      unawaited(_pushNotificationService.syncForUser(user));
+    }
     _isBootstrapping = false;
     _subscription = _repository.authStateChanges.listen((state) {
+      final previousUser = _user;
       _user = state.session?.user;
+      if (_user case final user?) {
+        unawaited(_pushNotificationService.syncForUser(user));
+      }
       if (state.event == AuthChangeEvent.passwordRecovery) {
         _isPasswordRecovery = true;
         _notice = 'Silakan buat password baru untuk akun Anda.';
       }
       if (state.event == AuthChangeEvent.signedOut) {
         _isPasswordRecovery = false;
+        unawaited(_pushNotificationService.deactivateForUser(previousUser));
       }
       notifyListeners();
     });
@@ -90,7 +101,10 @@ class AuthProvider extends ChangeNotifier {
     return ok;
   }
 
-  Future<void> signOut() => _repository.signOut();
+  Future<void> signOut() async {
+    await _pushNotificationService.deactivateForUser(_user);
+    await _repository.signOut();
+  }
 
   Future<bool> _run(
     Future<void> Function() action, {
@@ -141,6 +155,7 @@ class AuthProvider extends ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
+    unawaited(_pushNotificationService.dispose());
     super.dispose();
   }
 }
