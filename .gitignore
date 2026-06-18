@@ -7,6 +7,9 @@
 .env
 .env.local
 .env.*.local
+.push-webhook-secret.local
+firebase-service-account*.json
+*service-account*.json
 supabase/.temp/
 .atom/
 .build/

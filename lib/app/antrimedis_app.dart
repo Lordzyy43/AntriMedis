@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config/app_colors.dart';
 import '../core/config/app_spacing.dart';
 import '../core/config/app_theme.dart';
+import '../core/services/push_notification_service.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/reset_password_page.dart';
@@ -32,6 +33,9 @@ class AntriMedisApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authRepository = AuthRepository(Supabase.instance.client);
+    final pushNotificationService = PushNotificationService(
+      supabase: Supabase.instance.client,
+    );
     final clinicRepository = ClinicRepository(Supabase.instance.client);
     final notificationRepository = NotificationRepository(
       Supabase.instance.client,
@@ -42,7 +46,9 @@ class AntriMedisApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => AuthProvider(authRepository)..bootstrap(),
+          create: (_) =>
+              AuthProvider(authRepository, pushNotificationService)
+                ..bootstrap(),
         ),
         ChangeNotifierProvider(create: (_) => AppSettingsProvider()..load()),
         ChangeNotifierProvider(create: (_) => ClinicProvider(clinicRepository)),

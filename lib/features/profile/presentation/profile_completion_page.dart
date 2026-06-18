@@ -110,9 +110,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
               AppErrorBanner(message: profileProvider.error!),
               const SizedBox(height: AppSpacing.lg),
             ],
-            
+
             // _ProfileCompletionNotice ganda yang sebelumnya di sini telah dihapus total
-            
             AppCard(
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Form(
@@ -141,7 +140,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         labelText: 'Nama lengkap',
                         prefixIcon: Icon(Icons.badge_outlined),
                       ),
-                      onChanged: (_) => setState(() {}), // Memicu update persentase di header
+                      onChanged: (_) =>
+                          setState(() {}), // Memicu update persentase di header
                       validator: (value) =>
                           value == null || value.trim().length < 3
                           ? 'Nama minimal 3 karakter'
@@ -156,7 +156,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         labelText: 'Nomor HP',
                         prefixIcon: Icon(Icons.phone_outlined),
                       ),
-                      onChanged: (_) => setState(() {}), // Memicu update persentase di header
+                      onChanged: (_) =>
+                          setState(() {}), // Memicu update persentase di header
                       validator: (value) =>
                           value == null || value.trim().length < 8
                           ? 'Nomor HP belum valid'
@@ -164,7 +165,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     DropdownButtonFormField<String>(
-                      value: _gender,
+                      initialValue: _gender,
                       decoration: const InputDecoration(
                         labelText: 'Gender',
                         prefixIcon: Icon(Icons.wc_outlined),
@@ -278,9 +279,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   }
 
   Future<void> _showChangePasswordSheet() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ChangePasswordPage()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ChangePasswordPage()));
   }
 
   Future<void> _showAvatarPicker() async {
@@ -617,15 +618,15 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   }
 
   Future<void> _showSupportSheet() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const SupportPage()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SupportPage()));
   }
 
   Future<void> _showAboutSheet() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AboutMenuPage()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AboutMenuPage()));
   }
 
   Future<void> _confirmSignOut() async {
@@ -693,7 +694,7 @@ class _Header extends StatelessWidget {
         ? 'Pasien AntriMedis'
         : name;
     final avatarUrl = profile?.avatarUrl ?? googleAvatarUrl;
-    
+
     final statusLabel = currentProgress == 1.0
         ? 'Profil lengkap'
         : 'Perlu dilengkapi';
@@ -821,10 +822,7 @@ class _Header extends StatelessWidget {
 }
 
 class _CardTitle extends StatelessWidget {
-  const _CardTitle({
-    required this.icon,
-    required this.title,
-  });
+  const _CardTitle({required this.icon, required this.title});
 
   final IconData icon;
   final String title;
@@ -1001,7 +999,9 @@ class _AccountActionTile extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: isDanger ? AppColors.dangerSoft : AppColors.primarySoftOf(context),
+          color: isDanger
+              ? AppColors.dangerSoft
+              : AppColors.primarySoftOf(context),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: color, size: 20),

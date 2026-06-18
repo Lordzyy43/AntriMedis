@@ -9,15 +9,46 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, Object?> context = const {},
   }) {
+    _log(
+      scope: 'queue',
+      message: message,
+      error: error,
+      stackTrace: stackTrace,
+      context: context,
+    );
+  }
+
+  static void notification(
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+    Map<String, Object?> context = const {},
+  }) {
+    _log(
+      scope: 'notification',
+      message: message,
+      error: error,
+      stackTrace: stackTrace,
+      context: context,
+    );
+  }
+
+  static void _log({
+    required String scope,
+    required String message,
+    Object? error,
+    StackTrace? stackTrace,
+    Map<String, Object?> context = const {},
+  }) {
     if (kDebugMode) {
       final contextText = context.entries
           .where((entry) => entry.value != null)
           .map((entry) => '${entry.key}=${entry.value}')
           .join(' ');
       debugPrint(
-        '[queue] $message${contextText.isEmpty ? '' : ' $contextText'}',
+        '[$scope] $message${contextText.isEmpty ? '' : ' $contextText'}',
       );
-      if (error != null) debugPrint('[queue] error=$error');
+      if (error != null) debugPrint('[$scope] error=$error');
       if (stackTrace != null) debugPrintStack(stackTrace: stackTrace);
       return;
     }
@@ -27,7 +58,7 @@ class AppLogger {
         FlutterErrorDetails(
           exception: error,
           stack: stackTrace,
-          library: 'AntriMedis queue',
+          library: 'AntriMedis $scope',
           context: ErrorDescription(message),
           informationCollector: context.isEmpty
               ? null
