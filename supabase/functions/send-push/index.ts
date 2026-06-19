@@ -18,9 +18,6 @@ type DeviceTokenRow = {
 
 type PushRequest = {
   notification_id?: string;
-  user_id?: string;
-  title?: string;
-  body?: string;
   data?: Record<string, unknown>;
 };
 
@@ -54,17 +51,15 @@ Deno.serve(async (request) => {
   }
 
   const payload = await request.json() as PushRequest;
-  const notification = await resolveNotification(serviceClient, payload);
-  const userId = notification?.user_id ?? payload.user_id;
-  const title = notification?.title ?? payload.title;
-  const body = notification?.body ?? payload.body;
-
-  if (!userId || !title || !body) {
-    return json(
-      { error: "notification_id or user_id/title/body is required" },
-      400,
-    );
+  if (!payload.notification_id) {
+    return json({ error: "notification_id is required" }, 400);
   }
+
+  const notification = await resolveNotification(serviceClient, payload);
+  const userId = notification.user_id;
+  const title = notification.title;
+  const body = notification.body;
+  const pushData = buildPushData(notification, payload.data);
 
   const { data: tokens, error: tokenError } = await serviceClient
     .from("user_device_tokens")
@@ -94,13 +89,7 @@ Deno.serve(async (request) => {
     const result = await firebase.send({
       token: token.fcm_token,
       notification: { title, body },
-      data: stringifyData({
-        ...notification?.data,
-        ...payload.data,
-        notification_id: notification?.id ?? payload.notification_id ?? "",
-        type: notification?.type ?? payload.data?.type ?? "",
-        created_at: notification?.created_at ?? new Date().toISOString(),
-      }),
+      data: stringifyData(pushData),
       android: {
         priority: "HIGH",
         notification: { channel_id: "queue_updates" },
@@ -173,8 +162,6 @@ async function resolveNotification(
   serviceClient: ReturnType<typeof createClient>,
   payload: PushRequest,
 ) {
-  if (!payload.notification_id) return null;
-
   const { data, error } = await serviceClient
     .from("notifications")
     .select("id, user_id, type, title, body, data, created_at")
@@ -318,6 +305,53 @@ function stringifyData(data: Record<string, unknown>) {
       .filter(([, value]) => value !== null && value !== undefined)
       .map(([key, value]) => [key, String(value)]),
   );
+}
+
+function buildPushData(
+  notification: NotificationRow,
+  requestData?: Record<string, unknown>,
+) {
+  const sourceData = {
+    ...notification.data,
+    ...requestData,
+  };
+  const queueCode = textValue(sourceData.queue_code);
+  const ticketId = textValue(sourceData.ticket_id);
+  const remaining = textValue(sourceData.remaining);
+  const route = textValue(sourceData.route) ?? routeForType(notification.type);
+
+  return {
+    notification_id: notification.id,
+    type: notification.type,
+    ticket_id: ticketId,
+    queue_code: queueCode,
+    remaining,
+    route,
+    created_at: notification.created_at,
+  };
+}
+
+function routeForType(type: string) {
+  switch (type) {
+    case "queue_created":
+    case "queue_near":
+    case "queue_called":
+    case "queue_missed":
+      return "queue_tracking";
+    case "schedule_changed":
+      return "home";
+    case "queue_skipped":
+    case "queue_cancelled":
+    case "queue_expired":
+    default:
+      return "notifications";
+  }
+}
+
+function textValue(value: unknown) {
+  if (value === null || value === undefined) return undefined;
+  const text = String(value).trim();
+  return text.length ? text : undefined;
 }
 
 function isInvalidTokenError(errorCode?: string) {

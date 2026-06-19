@@ -1,5 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../config/notification_copy.dart';
+
 class NotificationService {
   NotificationService._();
 
@@ -29,70 +31,85 @@ class NotificationService {
     required String queueCode,
     required int remaining,
   }) async {
+    final values = {'queue_code': queueCode, 'remaining': remaining};
     await _showQueueNotification(
       id: queueCode.hashCode,
-      title: 'Giliran hampir tiba',
-      body: 'Nomor $queueCode tinggal $remaining antrean lagi. Mohon bersiap.',
+      title: renderLocalNotificationTitle('queue_near', values: values),
+      body: renderLocalNotificationBody('queue_near', values: values),
       dedupKey: 'queue_near:$queueCode',
     );
   }
 
   Future<void> showRemoteMessage({
     required int id,
+    String? eventType,
     required String title,
     required String body,
+    Map<String, Object?> values = const {},
     String? dedupKey,
   }) async {
     await _showQueueNotification(
       id: id,
-      title: title,
-      body: body,
+      title: renderLocalNotificationTitle(
+        eventType,
+        values: values,
+        fallbackTitle: title,
+      ),
+      body: renderLocalNotificationBody(
+        eventType,
+        values: values,
+        fallbackBody: body,
+      ),
       dedupKey: dedupKey,
     );
   }
 
   Future<void> showQueueCalled({required String queueCode}) async {
+    final values = {'queue_code': queueCode};
     await _showQueueNotification(
       id: Object.hash(queueCode, 'called'),
-      title: 'Sedang dipanggil',
-      body: 'Nomor $queueCode sedang dipanggil. Silakan menuju poli.',
+      title: renderLocalNotificationTitle('queue_called', values: values),
+      body: renderLocalNotificationBody('queue_called', values: values),
       dedupKey: 'queue_called:$queueCode',
     );
   }
 
   Future<void> showQueueSkipped({required String queueCode}) async {
+    final values = {'queue_code': queueCode};
     await _showQueueNotification(
       id: Object.hash(queueCode, 'skipped'),
-      title: 'Antrean dilewati',
-      body: 'Nomor $queueCode dilewati oleh petugas.',
+      title: renderLocalNotificationTitle('queue_skipped', values: values),
+      body: renderLocalNotificationBody('queue_skipped', values: values),
       dedupKey: 'queue_skipped:$queueCode',
     );
   }
 
   Future<void> showQueueMissed({required String queueCode}) async {
+    final values = {'queue_code': queueCode};
     await _showQueueNotification(
       id: Object.hash(queueCode, 'missed'),
-      title: 'Terlewat',
-      body:
-          'Nomor $queueCode terlewat. Tunggu panggil ulang setelah antrean reguler selesai.',
+      title: renderLocalNotificationTitle('queue_missed', values: values),
+      body: renderLocalNotificationBody('queue_missed', values: values),
       dedupKey: 'queue_missed:$queueCode',
     );
   }
 
   Future<void> showQueueCancelled({required String queueCode}) async {
+    final values = {'queue_code': queueCode};
     await _showQueueNotification(
       id: Object.hash(queueCode, 'cancelled'),
-      title: 'Antrean dibatalkan',
-      body: 'Nomor $queueCode sudah dibatalkan.',
+      title: renderLocalNotificationTitle('queue_cancelled', values: values),
+      body: renderLocalNotificationBody('queue_cancelled', values: values),
       dedupKey: 'queue_cancelled:$queueCode',
     );
   }
 
   Future<void> showQueueExpired({required String queueCode}) async {
+    final values = {'queue_code': queueCode};
     await _showQueueNotification(
       id: Object.hash(queueCode, 'expired'),
-      title: 'Antrean kedaluwarsa',
-      body: 'Nomor $queueCode tidak lagi aktif karena sesi layanan ditutup.',
+      title: renderLocalNotificationTitle('queue_expired', values: values),
+      body: renderLocalNotificationBody('queue_expired', values: values),
       dedupKey: 'queue_expired:$queueCode',
     );
   }
