@@ -9,6 +9,7 @@
 .env.*.local
 .push-webhook-secret.local
 firebase-service-account*.json
+antrimedis-*-firebase-adminsdk-*.json
 *service-account*.json
 supabase/.temp/
 .atom/
