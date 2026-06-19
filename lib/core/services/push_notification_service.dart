@@ -137,10 +137,20 @@ class PushNotificationService {
     final body = notification?.body ?? message.data['body']?.toString();
     if (title == null || body == null) return;
 
+    final eventType = message.data['type']?.toString();
+    final values = <String, Object?>{
+      'queue_code': message.data['queue_code']?.toString(),
+      'remaining': message.data['remaining']?.toString(),
+      'ticket_id': message.data['ticket_id']?.toString(),
+      'notification_id': message.data['notification_id']?.toString(),
+    }..removeWhere((_, value) => value == null || value == '');
+
     await NotificationService.instance.showRemoteMessage(
       id: message.messageId?.hashCode ?? Object.hash(title, body),
+      eventType: eventType,
       title: title,
       body: body,
+      values: values,
       dedupKey: _dedupKeyFor(message),
     );
   }

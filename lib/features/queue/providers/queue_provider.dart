@@ -12,6 +12,8 @@ import '../data/models/queue_ticket_timeline_item.dart';
 import '../data/models/schedule_availability.dart';
 import '../data/queue_repository.dart';
 
+const _queueNearRemainingThreshold = 2;
+
 class QueueProvider extends ChangeNotifier {
   QueueProvider(this._repository);
 
@@ -321,7 +323,7 @@ class QueueProvider extends ChangeNotifier {
   ) async {
     final nearKey = '${ticket.ticketId}:ready-soon';
     if (ticket.remainingBeforeMe > 0 &&
-        ticket.remainingBeforeMe <= 2 &&
+        ticket.remainingBeforeMe <= _queueNearRemainingThreshold &&
         ticket.status == 'waiting' &&
         _lastNearNotificationKey != nearKey) {
       _lastNearNotificationKey = nearKey;
