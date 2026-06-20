@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config/app_colors.dart';
 import '../core/config/app_spacing.dart';
 import '../core/config/app_theme.dart';
+import '../core/navigation/app_navigator.dart';
 import '../core/services/push_notification_service.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/login_page.dart';
@@ -65,6 +66,7 @@ class AntriMedisApp extends StatelessWidget {
           return MaterialApp(
             title: 'AntriMedis',
             debugShowCheckedModeBanner: false,
+            navigatorKey: appNavigatorKey,
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
             themeMode: settings.themeMode,
