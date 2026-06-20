@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../config/notification_copy.dart';
+import 'notification_tap_router.dart';
 
 class NotificationService {
   NotificationService._();
@@ -14,7 +17,11 @@ class NotificationService {
   Future<void> initialize() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const settings = InitializationSettings(android: android);
-    await _plugin.initialize(settings: settings);
+    await _plugin.initialize(
+      settings: settings,
+      onDidReceiveNotificationResponse:
+          NotificationTapRouter.instance.handleLocalNotificationResponse,
+    );
     await _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -25,6 +32,8 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.requestNotificationsPermission();
+    final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+    await NotificationTapRouter.instance.handleLaunchDetails(launchDetails);
   }
 
   Future<void> showQueueNear({
@@ -37,6 +46,7 @@ class NotificationService {
       title: renderLocalNotificationTitle('queue_near', values: values),
       body: renderLocalNotificationBody('queue_near', values: values),
       dedupKey: 'queue_near:$queueCode',
+      payload: _payloadFor('queue_near', values),
     );
   }
 
@@ -61,6 +71,7 @@ class NotificationService {
         fallbackBody: body,
       ),
       dedupKey: dedupKey,
+      payload: _payloadFor(eventType, values),
     );
   }
 
@@ -71,6 +82,7 @@ class NotificationService {
       title: renderLocalNotificationTitle('queue_called', values: values),
       body: renderLocalNotificationBody('queue_called', values: values),
       dedupKey: 'queue_called:$queueCode',
+      payload: _payloadFor('queue_called', values),
     );
   }
 
@@ -81,6 +93,7 @@ class NotificationService {
       title: renderLocalNotificationTitle('queue_skipped', values: values),
       body: renderLocalNotificationBody('queue_skipped', values: values),
       dedupKey: 'queue_skipped:$queueCode',
+      payload: _payloadFor('queue_skipped', values),
     );
   }
 
@@ -91,6 +104,7 @@ class NotificationService {
       title: renderLocalNotificationTitle('queue_missed', values: values),
       body: renderLocalNotificationBody('queue_missed', values: values),
       dedupKey: 'queue_missed:$queueCode',
+      payload: _payloadFor('queue_missed', values),
     );
   }
 
@@ -101,6 +115,7 @@ class NotificationService {
       title: renderLocalNotificationTitle('queue_cancelled', values: values),
       body: renderLocalNotificationBody('queue_cancelled', values: values),
       dedupKey: 'queue_cancelled:$queueCode',
+      payload: _payloadFor('queue_cancelled', values),
     );
   }
 
@@ -111,6 +126,7 @@ class NotificationService {
       title: renderLocalNotificationTitle('queue_expired', values: values),
       body: renderLocalNotificationBody('queue_expired', values: values),
       dedupKey: 'queue_expired:$queueCode',
+      payload: _payloadFor('queue_expired', values),
     );
   }
 
@@ -119,6 +135,7 @@ class NotificationService {
     required String title,
     required String body,
     String? dedupKey,
+    String? payload,
   }) async {
     if (!_shouldShow(dedupKey ?? '$title:$body')) return;
 
@@ -129,6 +146,7 @@ class NotificationService {
       title: title,
       body: body,
       notificationDetails: details,
+      payload: payload,
     );
   }
 
@@ -141,6 +159,18 @@ class NotificationService {
 
     _recentDedupKeys[dedupKey] = now;
     return true;
+  }
+
+  String _payloadFor(
+    String? eventType,
+    Map<String, Object?> values,
+  ) {
+    final data = <String, Object?>{
+      'event_type': eventType,
+      'route': notificationRouteForType(eventType),
+      ...values,
+    }..removeWhere((_, value) => value == null || value == '');
+    return jsonEncode(data);
   }
 }
 

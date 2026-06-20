@@ -96,6 +96,20 @@ class _QueueTrackingPageState extends State<QueueTrackingPage> {
   @override
   Widget build(BuildContext context) {
     final queue = context.watch<QueueProvider>();
+    final queueTicketId = queue.trackingTicket?.ticketId;
+    if (widget.ticket == null &&
+        queueTicketId != null &&
+        queueTicketId != _subscribedTicketId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final latestTicketId = context.read<QueueProvider>().trackingTicket?.ticketId;
+        if (latestTicketId == null || latestTicketId == _subscribedTicketId) {
+          return;
+        }
+        _subscribe(latestTicketId);
+        _loadTicketData(latestTicketId);
+      });
+    }
     final selectedTicket = _detail ?? widget.ticket ?? queue.trackingTicket;
     final isHistoricalDetail = widget.ticket != null;
 

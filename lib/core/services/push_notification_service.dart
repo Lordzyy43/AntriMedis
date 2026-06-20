@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app_logger.dart';
+import 'notification_tap_router.dart';
 import 'notification_service.dart';
 
 class PushNotificationService {
@@ -19,6 +20,7 @@ class PushNotificationService {
 
   StreamSubscription<String>? _tokenRefreshSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
+  StreamSubscription<RemoteMessage>? _openedAppSubscription;
   String? _activeUserId;
 
   static bool get isSupported {
@@ -41,6 +43,9 @@ class PushNotificationService {
     _foregroundSubscription ??= FirebaseMessaging.onMessage.listen(
       _handleForegroundMessage,
     );
+    _openedAppSubscription ??= FirebaseMessaging.onMessageOpenedApp.listen(
+      NotificationTapRouter.instance.handleRemoteMessage,
+    );
     _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen(
       _syncTokenForActiveUser,
       onError: (Object error, StackTrace stackTrace) {
@@ -51,6 +56,13 @@ class PushNotificationService {
         );
       },
     );
+
+    final initialMessage = await _messaging.getInitialMessage();
+    if (initialMessage != null) {
+      unawaited(
+        NotificationTapRouter.instance.handleRemoteMessage(initialMessage),
+      );
+    }
   }
 
   Future<void> syncForUser(User user) async {
@@ -102,6 +114,7 @@ class PushNotificationService {
   Future<void> dispose() async {
     await _tokenRefreshSubscription?.cancel();
     await _foregroundSubscription?.cancel();
+    await _openedAppSubscription?.cancel();
   }
 
   Future<void> _syncTokenForActiveUser(String token) async {
@@ -143,6 +156,7 @@ class PushNotificationService {
       'remaining': message.data['remaining']?.toString(),
       'ticket_id': message.data['ticket_id']?.toString(),
       'notification_id': message.data['notification_id']?.toString(),
+      'route': message.data['route']?.toString(),
     }..removeWhere((_, value) => value == null || value == '');
 
     await NotificationService.instance.showRemoteMessage(
