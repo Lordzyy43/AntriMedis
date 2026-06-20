@@ -15,7 +15,7 @@ class NotificationService {
   final Map<String, DateTime> _recentDedupKeys = {};
 
   Future<void> initialize() async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const android = AndroidInitializationSettings('ic_notification');
     const settings = InitializationSettings(android: android);
     await _plugin.initialize(
       settings: settings,
@@ -185,6 +185,7 @@ const _queueUpdatesDetails = AndroidNotificationDetails(
   'queue_updates',
   'Pembaruan antrean',
   channelDescription: 'Notifikasi perkembangan antrean AntriMedis',
+  icon: 'ic_notification',
   importance: Importance.high,
   priority: Priority.high,
 );
