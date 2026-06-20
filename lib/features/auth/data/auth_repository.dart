@@ -23,6 +23,7 @@ class AuthRepository {
     await _client.auth.signUp(
       email: email,
       password: password,
+      emailRedirectTo: SupabaseConfig.oauthRedirectUrl,
       data: {'full_name': fullName},
     );
   }
