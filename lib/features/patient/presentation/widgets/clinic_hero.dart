@@ -59,22 +59,15 @@ class ClinicHero extends StatelessWidget {
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        clinicName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      
-                    ],
+                  child: Text(
+                    clinicName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
                 AppBadge(
@@ -88,6 +81,8 @@ class ClinicHero extends StatelessWidget {
             const SizedBox(height: AppSpacing.xl),
             Text(
               'Halo, $greetingName',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w900,
@@ -97,6 +92,8 @@ class ClinicHero extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             const Text(
               'Pilih layanan, ambil nomor, lalu pantau giliran Anda dari ponsel.',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Color(0xFFD8F7F7),
                 height: 1.4,
@@ -104,15 +101,16 @@ class ClinicHero extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
+            Wrap(
+              spacing: AppSpacing.md,
+              runSpacing: AppSpacing.md,
+              alignment: WrapAlignment.start,
               children: [
                 _InfoIconButton(
                   icon: Icons.apartment_outlined,
                   label: 'Cabang layanan',
                   value: branchName,
                 ),
-                const SizedBox(width: AppSpacing.md),
                 _InfoIconButton(
                   icon: Icons.location_on_outlined,
                   label: 'Alamat klinik',

@@ -64,7 +64,14 @@ class _PatientHomePageState extends State<PatientHomePage> {
           slivers: [
             SliverPersistentHeader(
               pinned: true,
-              delegate: _StickyClinicHeroHeader(
+              delegate: _ResponsivePinnedHomeHeader(
+                extent: _estimateHomeHeaderExtent(
+                  context,
+                  patientName: profile.profile?.fullName,
+                  address:
+                      clinic?.fullAddress ??
+                      'Ambil nomor antrean poli dan pantau giliran Anda dari ponsel.',
+                ),
                 child: ClinicHero(
                   patientName: profile.profile?.fullName,
                   clinicName: 'Klinik Sehat Sentosa',
@@ -184,6 +191,27 @@ class _PatientHomePageState extends State<PatientHomePage> {
         ),
       ),
     );
+  }
+
+  double _estimateHomeHeaderExtent(
+    BuildContext context, {
+    required String? patientName,
+    required String address,
+  }) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final hasName = patientName?.trim().isNotEmpty ?? false;
+    final compactWidth = MediaQuery.sizeOf(context).width < 380;
+    var extent = 300.0;
+
+    if (hasName) extent += 8;
+    if (address.length > 72) extent += 8;
+    if (address.length > 112) extent += 8;
+    if (compactWidth) extent += 16;
+    if (textScale > 1) {
+      extent += ((textScale - 1).clamp(0.0, 0.8)) * 72;
+    }
+
+    return extent.clamp(300.0, 440.0);
   }
 
   Future<void> _takeQueue(
@@ -350,18 +378,20 @@ class _PatientHomePageState extends State<PatientHomePage> {
   }
 }
 
-class _StickyClinicHeroHeader extends SliverPersistentHeaderDelegate {
-  const _StickyClinicHeroHeader({required this.child});
+class _ResponsivePinnedHomeHeader extends SliverPersistentHeaderDelegate {
+  const _ResponsivePinnedHomeHeader({
+    required this.extent,
+    required this.child,
+  });
 
+  final double extent;
   final Widget child;
 
-  static const double _extent = 262;
+  @override
+  double get minExtent => extent;
 
   @override
-  double get minExtent => _extent;
-
-  @override
-  double get maxExtent => _extent;
+  double get maxExtent => extent;
 
   @override
   Widget build(
@@ -371,21 +401,24 @@ class _StickyClinicHeroHeader extends SliverPersistentHeaderDelegate {
   ) {
     return DecoratedBox(
       decoration: BoxDecoration(color: AppColors.backgroundOf(context)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.xl,
-          AppSpacing.lg,
-          AppSpacing.sm,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.sm,
+          ),
+          child: child,
         ),
-        child: child,
       ),
     );
   }
 
   @override
-  bool shouldRebuild(covariant _StickyClinicHeroHeader oldDelegate) {
-    return oldDelegate.child != child;
+  bool shouldRebuild(covariant _ResponsivePinnedHomeHeader oldDelegate) {
+    return oldDelegate.extent != extent || oldDelegate.child != child;
   }
 }
 
