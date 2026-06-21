@@ -83,167 +83,192 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     final currentProgress = _calculateCurrentProgress();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isEditing ? 'Profil Pasien' : 'Lengkapi Profil'),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xl,
-            AppSpacing.xl,
-            AppSpacing.xl,
-            112,
-          ),
-          children: [
-            // Header yang menampung info persentase dinamis tunggal
-            _Header(
-              isEditing: widget.isEditing,
-              profile: profile,
-              email: email,
-              googleAvatarUrl: googleAvatarUrl,
-              isAvatarSaving: profileProvider.isAvatarSaving,
-              onChangeAvatar: _showAvatarPicker,
-              currentProgress: currentProgress,
+      backgroundColor: AppColors.backgroundOf(context),
+      body: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        slivers: [
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _PinnedProfileHeader(
+              child: _CleanProfileHeader(
+                title: widget.isEditing ? 'Profil Pasien' : 'Lengkapi Profil',
+                statusLabel: currentProgress == 1.0
+                    ? 'Profil lengkap'
+                    : 'Perlu dilengkapi',
+                statusDetail: widget.isEditing
+                    ? 'Kelola data dan keamanan akun pasien.'
+                    : 'Lengkapi data dasar untuk melanjutkan.',
+              ),
             ),
-            const SizedBox(height: AppSpacing.xl),
-            if (profileProvider.error != null) ...[
-              AppErrorBanner(message: profileProvider.error!),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-
-            // _ProfileCompletionNotice ganda yang sebelumnya di sini telah dihapus total
-            AppCard(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _CardTitle(
-                      icon: Icons.assignment_ind_outlined,
-                      title: 'Data Pribadi',
-                    ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xl,
+              AppSpacing.lg,
+              AppSpacing.xl,
+              112,
+            ),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate(
+                [
+                  // Header yang menampung info persentase dinamis tunggal
+                  _Header(
+                    isEditing: widget.isEditing,
+                    profile: profile,
+                    email: email,
+                    googleAvatarUrl: googleAvatarUrl,
+                    isAvatarSaving: profileProvider.isAvatarSaving,
+                    onChangeAvatar: _showAvatarPicker,
+                    currentProgress: currentProgress,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  if (profileProvider.error != null) ...[
+                    AppErrorBanner(message: profileProvider.error!),
                     const SizedBox(height: AppSpacing.lg),
-                    TextFormField(
-                      enabled: false,
-                      initialValue: email ?? '-',
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.mail_outline),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    TextFormField(
-                      controller: _nameController,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Nama lengkap',
-                        prefixIcon: Icon(Icons.badge_outlined),
-                      ),
-                      onChanged: (_) =>
-                          setState(() {}), // Memicu update persentase di header
-                      validator: (value) =>
-                          value == null || value.trim().length < 3
-                          ? 'Nama minimal 3 karakter'
-                          : null,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Nomor HP',
-                        prefixIcon: Icon(Icons.phone_outlined),
-                      ),
-                      onChanged: (_) =>
-                          setState(() {}), // Memicu update persentase di header
-                      validator: (value) =>
-                          value == null || value.trim().length < 8
-                          ? 'Nomor HP belum valid'
-                          : null,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    DropdownButtonFormField<String>(
-                      initialValue: _gender,
-                      decoration: const InputDecoration(
-                        labelText: 'Gender',
-                        prefixIcon: Icon(Icons.wc_outlined),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'male',
-                          child: Text('Laki-laki'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'female',
-                          child: Text('Perempuan'),
-                        ),
-                      ],
-                      onChanged: (value) => setState(() => _gender = value),
-                      validator: (value) =>
-                          value == null ? 'Pilih gender pasien' : null,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: _pickBirthDate,
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Tanggal lahir (opsional)',
-                          prefixIcon: Icon(Icons.cake_outlined),
-                        ),
-                        child: Text(
-                          _birthDate == null
-                              ? 'Belum diisi'
-                              : DateFormat('dd MMMM yyyy').format(_birthDate!),
-                          style: TextStyle(
-                            color: _birthDate == null
-                                ? AppColors.textMuted
-                                : AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
+                  ],
+
+                  // _ProfileCompletionNotice ganda yang sebelumnya di sini telah dihapus total
+                  AppCard(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _CardTitle(
+                            icon: Icons.assignment_ind_outlined,
+                            title: 'Data Pribadi',
                           ),
-                        ),
+                          const SizedBox(height: AppSpacing.lg),
+                          TextFormField(
+                            enabled: false,
+                            initialValue: email ?? '-',
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                              prefixIcon: Icon(Icons.mail_outline),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          TextFormField(
+                            controller: _nameController,
+                            textInputAction: TextInputAction.next,
+                            decoration: const InputDecoration(
+                              labelText: 'Nama lengkap',
+                              prefixIcon: Icon(Icons.badge_outlined),
+                            ),
+                            onChanged: (_) =>
+                                setState(() {}), // Memicu update persentase di header
+                            validator: (value) =>
+                                value == null || value.trim().length < 3
+                                ? 'Nama minimal 3 karakter'
+                                : null,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          TextFormField(
+                            controller: _phoneController,
+                            keyboardType: TextInputType.phone,
+                            textInputAction: TextInputAction.next,
+                            decoration: const InputDecoration(
+                              labelText: 'Nomor HP',
+                              prefixIcon: Icon(Icons.phone_outlined),
+                            ),
+                            onChanged: (_) =>
+                                setState(() {}), // Memicu update persentase di header
+                            validator: (value) =>
+                                value == null || value.trim().length < 8
+                                ? 'Nomor HP belum valid'
+                                : null,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          DropdownButtonFormField<String>(
+                            initialValue: _gender,
+                            decoration: const InputDecoration(
+                              labelText: 'Gender',
+                              prefixIcon: Icon(Icons.wc_outlined),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'male',
+                                child: Text('Laki-laki'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'female',
+                                child: Text('Perempuan'),
+                              ),
+                            ],
+                            onChanged: (value) => setState(() => _gender = value),
+                            validator: (value) =>
+                                value == null ? 'Pilih gender pasien' : null,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: _pickBirthDate,
+                            child: InputDecorator(
+                              decoration: const InputDecoration(
+                                labelText: 'Tanggal lahir (opsional)',
+                                prefixIcon: Icon(Icons.cake_outlined),
+                              ),
+                              child: Text(
+                                _birthDate == null
+                                    ? 'Belum diisi'
+                                    : DateFormat(
+                                        'dd MMMM yyyy',
+                                      ).format(_birthDate!),
+                                style: TextStyle(
+                                  color: _birthDate == null
+                                      ? AppColors.textMuted
+                                      : AppColors.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xl),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: profileProvider.isSaving
+                                  ? null
+                                  : _submit,
+                              icon: profileProvider.isSaving
+                                  ? const SizedBox.square(
+                                      dimension: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.check_circle_outline),
+                              label: Text(
+                                widget.isEditing
+                                    ? 'Simpan Perubahan'
+                                    : 'Simpan & Lanjutkan',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: profileProvider.isSaving ? null : _submit,
-                        icon: profileProvider.isSaving
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.check_circle_outline),
-                        label: Text(
-                          widget.isEditing
-                              ? 'Simpan Perubahan'
-                              : 'Simpan & Lanjutkan',
-                        ),
-                      ),
+                  ),
+                  if (widget.isEditing) ...[
+                    const SizedBox(height: AppSpacing.lg),
+                    _AccountActionPanel(
+                      onChangePassword: _showChangePasswordSheet,
+                      onSecurity: _showSecuritySheet,
+                      onSupport: _showSupportSheet,
+                      onAbout: _showAboutSheet,
+                      onSignOut: _confirmSignOut,
+                      isLoading: context.watch<AuthProvider>().isLoading,
                     ),
                   ],
-                ),
+                ],
               ),
             ),
-            if (widget.isEditing) ...[
-              const SizedBox(height: AppSpacing.lg),
-              _AccountActionPanel(
-                onChangePassword: _showChangePasswordSheet,
-                onSecurity: _showSecuritySheet,
-                onSupport: _showSupportSheet,
-                onAbout: _showAboutSheet,
-                onSignOut: _confirmSignOut,
-                isLoading: context.watch<AuthProvider>().isLoading,
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -664,6 +689,118 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     notificationProvider.clear();
     profileProvider.clear();
     await authProvider.signOut();
+  }
+}
+
+class _PinnedProfileHeader extends SliverPersistentHeaderDelegate {
+  const _PinnedProfileHeader({required this.child});
+
+  final Widget child;
+
+  static const double _extent = 170;
+
+  @override
+  double get minExtent => _extent;
+
+  @override
+  double get maxExtent => _extent;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: AppColors.backgroundOf(context)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          64,
+          AppSpacing.lg,
+          AppSpacing.md,
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedProfileHeader oldDelegate) {
+    return oldDelegate.child != child;
+  }
+}
+
+class _CleanProfileHeader extends StatelessWidget {
+  const _CleanProfileHeader({
+    required this.title,
+    required this.statusLabel,
+    required this.statusDetail,
+  });
+
+  final String title;
+  final String statusLabel;
+  final String statusDetail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: AppColors.textPrimaryOf(context),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                statusLabel,
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Text(
+              statusDetail,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.textMutedOf(context),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        const Divider(height: 24, thickness: 0.8),
+      ],
+    );
   }
 }
 
