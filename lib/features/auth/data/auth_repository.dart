@@ -28,6 +28,14 @@ class AuthRepository {
     );
   }
 
+  Future<void> resendSignupConfirmation({required String email}) async {
+    await _client.auth.resend(
+      email: email,
+      type: OtpType.signup,
+      emailRedirectTo: SupabaseConfig.oauthRedirectUrl,
+    );
+  }
+
   Future<void> sendPasswordReset(String email) async {
     await _client.auth.resetPasswordForEmail(
       email,
