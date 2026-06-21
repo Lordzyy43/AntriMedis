@@ -75,7 +75,15 @@ class AuthProvider extends ChangeNotifier {
         password: password,
       ),
       successMessage:
-          'Akun berhasil dibuat. Jika diminta verifikasi, cek email Anda sebelum masuk.',
+          'Pendaftaran berhasil. Cek email untuk verifikasi, lalu masuk lagi setelah link dibuka.',
+    );
+  }
+
+  Future<bool> resendSignupConfirmation(String email) async {
+    return _run(
+      () => _repository.resendSignupConfirmation(email: email),
+      successMessage:
+          'Link verifikasi baru sudah dikirim. Cek inbox atau folder spam email Anda.',
     );
   }
 

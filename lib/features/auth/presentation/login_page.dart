@@ -38,8 +38,13 @@ class _LoginPageState extends State<LoginPage> {
     context.read<AuthProvider>().clearMessages();
     setState(() {
       _isRegister = !_isRegister;
+      _nameController.clear();
+      _passwordController.clear();
+      _confirmPasswordController.clear();
       // Reset form validation saat berpindah mode
       _formKey.currentState?.reset();
+      _obscurePassword = true;
+      _obscureConfirmPassword = true;
     });
   }
 
@@ -146,6 +151,9 @@ class _LoginPageState extends State<LoginPage> {
                                     keyboardType: TextInputType.emailAddress,
                                     textInputAction: TextInputAction.next,
                                     autofillHints: const [AutofillHints.email],
+                                    autocorrect: false,
+                                    enableSuggestions: false,
+                                    onChanged: (_) => setState(() {}),
                                     decoration: const InputDecoration(
                                       labelText: 'Email',
                                       prefixIcon: Icon(Icons.mail_outline, size: 22),
@@ -247,6 +255,17 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                                   ],
                                   const SizedBox(height: AppSpacing.xl),
+
+                                  if (_isRegister) ...[
+                                    _VerificationHint(
+                                      email: _emailController.text.trim(),
+                                      onResend:
+                                          auth.isLoading || !_canResendVerification
+                                          ? null
+                                          : () => _resendVerification(),
+                                    ),
+                                    const SizedBox(height: AppSpacing.md),
+                                  ],
                                   
                                   // Tombol Submit Utama
                                   ElevatedButton.icon(
@@ -330,6 +349,17 @@ class _LoginPageState extends State<LoginPage> {
     await context.read<AuthProvider>().signInWithGoogle();
   }
 
+  Future<void> _resendVerification() async {
+    final email = _emailController.text.trim();
+    final emailError = _validateEmail(email);
+    if (emailError != null) {
+      _showSnack(emailError);
+      return;
+    }
+
+    await context.read<AuthProvider>().resendSignupConfirmation(email);
+  }
+
   String? _validateEmail(String? value) {
     final email = value?.trim() ?? '';
     final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -358,6 +388,11 @@ class _LoginPageState extends State<LoginPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  bool get _canResendVerification {
+    final emailError = _validateEmail(_emailController.text);
+    return emailError == null && _emailController.text.trim().isNotEmpty;
   }
 }
 
@@ -428,6 +463,54 @@ class _AuthNotice extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 height: 1.4,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VerificationHint extends StatelessWidget {
+  const _VerificationHint({
+    required this.email,
+    required this.onResend,
+  });
+
+  final String email;
+  final VoidCallback? onResend;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      backgroundColor: AppColors.primarySoftOf(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Perlu verifikasi email',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            email.isEmpty
+                ? 'Isi email dulu agar kami bisa kirim link verifikasi.'
+                : 'Link verifikasi akan dikirim ke $email. Setelah dibuka, akun siap dipakai dan Anda bisa kembali ke aplikasi untuk masuk.',
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: onResend,
+              icon: const Icon(Icons.mark_email_unread_outlined, size: 18),
+              label: const Text('Kirim ulang email verifikasi'),
             ),
           ),
         ],
