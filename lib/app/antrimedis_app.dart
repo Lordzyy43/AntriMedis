@@ -8,6 +8,7 @@ import '../core/config/app_colors.dart';
 import '../core/config/app_spacing.dart';
 import '../core/config/app_theme.dart';
 import '../core/navigation/app_navigator.dart';
+import '../core/services/app_update_service.dart';
 import '../core/services/push_notification_service.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/login_page.dart';
@@ -27,6 +28,7 @@ import '../features/profile/providers/profile_provider.dart';
 import '../features/queue/data/queue_repository.dart';
 import '../features/queue/providers/queue_provider.dart';
 import '../features/settings/providers/app_settings_provider.dart';
+import 'package:in_app_update/in_app_update.dart';
 
 class AntriMedisApp extends StatelessWidget {
   const AntriMedisApp({super.key});
@@ -87,6 +89,8 @@ class _StartupGate extends StatefulWidget {
 
 class _StartupGateState extends State<_StartupGate> {
   bool _startupSplashDone = false;
+  bool _updateCheckScheduled = false;
+  bool _updateDialogVisible = false;
 
   @override
   void initState() {
@@ -102,6 +106,8 @@ class _StartupGateState extends State<_StartupGate> {
     final settings = context.watch<AppSettingsProvider>();
     final auth = context.watch<AuthProvider>();
 
+    _maybeScheduleUpdateCheck(settings, auth);
+
     if (!_startupSplashDone || settings.isLoading || auth.isBootstrapping) {
       return const SplashPage();
     }
@@ -115,6 +121,90 @@ class _StartupGateState extends State<_StartupGate> {
       return const OnboardingPage();
     }
     return const LoginPage();
+  }
+
+  void _maybeScheduleUpdateCheck(
+    AppSettingsProvider settings,
+    AuthProvider auth,
+  ) {
+    if (_updateCheckScheduled) return;
+    if (!_startupSplashDone || settings.isLoading || auth.isBootstrapping) return;
+
+    _updateCheckScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_checkForAppUpdate());
+    });
+  }
+
+  Future<void> _checkForAppUpdate() async {
+    final service = AppUpdateService.instance;
+    if (!service.isSupported) return;
+
+    final info = await service.checkForUpdate();
+    if (!mounted || info == null) return;
+
+    if (info.installStatus == InstallStatus.downloaded) {
+      await service.completeFlexibleUpdate();
+      return;
+    }
+
+    if (info.updateAvailability != UpdateAvailability.updateAvailable) {
+      return;
+    }
+
+    if (_updateDialogVisible) return;
+    _updateDialogVisible = true;
+
+    try {
+      final shouldUpdate = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          final title = info.immediateUpdateAllowed
+              ? 'Pembaruan wajib tersedia'
+              : 'Pembaruan tersedia';
+          final message = info.immediateUpdateAllowed
+              ? 'Versi terbaru AntriMedis perlu dipasang sebelum melanjutkan.'
+              : 'Versi baru AntriMedis sudah tersedia. Perbarui sekarang untuk fitur dan perbaikan terbaru.';
+          final buttonLabel = info.immediateUpdateAllowed
+              ? 'Perbarui Sekarang'
+              : 'Unduh Pembaruan';
+
+          return AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              if (!info.immediateUpdateAllowed)
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Nanti'),
+                ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(buttonLabel),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (shouldUpdate != true || !mounted) return;
+
+      final started = info.immediateUpdateAllowed
+          ? await service.startImmediateUpdate()
+          : await service.startFlexibleUpdate();
+
+      if (!started && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pembaruan belum bisa dimulai. Coba lagi nanti.'),
+          ),
+        );
+      }
+    } finally {
+      _updateDialogVisible = false;
+    }
   }
 }
 
