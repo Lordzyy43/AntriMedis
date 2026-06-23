@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.antrimedis.app"
+    namespace = "com.ti24a6.antrimedis"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -24,7 +24,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.antrimedis.app"
+        applicationId = "com.ti24a6.antrimedis"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
