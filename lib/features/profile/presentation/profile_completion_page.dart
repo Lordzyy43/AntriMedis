@@ -92,6 +92,13 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           SliverPersistentHeader(
             pinned: true,
             delegate: _PinnedProfileHeader(
+              extent: _estimateProfileHeaderExtent(
+                context,
+                title: widget.isEditing ? 'Profil Pasien' : 'Lengkapi Profil',
+                statusDetail: widget.isEditing
+                    ? 'Kelola data dan keamanan akun pasien.'
+                    : 'Lengkapi data dasar untuk melanjutkan.',
+              ),
               child: _CleanProfileHeader(
                 title: widget.isEditing ? 'Profil Pasien' : 'Lengkapi Profil',
                 statusLabel: currentProgress == 1.0
@@ -693,17 +700,16 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 }
 
 class _PinnedProfileHeader extends SliverPersistentHeaderDelegate {
-  const _PinnedProfileHeader({required this.child});
+  const _PinnedProfileHeader({required this.extent, required this.child});
 
   final Widget child;
-
-  static const double _extent = 170;
-
-  @override
-  double get minExtent => _extent;
+  final double extent;
 
   @override
-  double get maxExtent => _extent;
+  double get minExtent => extent;
+
+  @override
+  double get maxExtent => extent;
 
   @override
   Widget build(
@@ -727,8 +733,33 @@ class _PinnedProfileHeader extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _PinnedProfileHeader oldDelegate) {
-    return oldDelegate.child != child;
+    return oldDelegate.child != child || oldDelegate.extent != extent;
   }
+}
+
+double _estimateProfileHeaderExtent(
+  BuildContext context, {
+  required String title,
+  required String statusDetail,
+}) {
+  final width = MediaQuery.sizeOf(context).width;
+  final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+  final hasLongDetail = statusDetail.length > 34;
+  final compactWidth = width < 390;
+  final veryCompactWidth = width < 360;
+
+  var extent = 176.0;
+
+  // Ruang ekstra untuk layar sempit dan skala font yang lebih besar.
+  if (compactWidth) extent += 12;
+  if (veryCompactWidth) extent += 10;
+  if (hasLongDetail) extent += 6;
+  if (title.length > 14) extent += 2;
+  if (textScale > 1) {
+    extent += ((textScale - 1).clamp(0.0, 0.8)) * 52;
+  }
+
+  return extent.clamp(176.0, 228.0);
 }
 
 class _CleanProfileHeader extends StatelessWidget {
