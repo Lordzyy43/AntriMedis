@@ -1,6 +1,6 @@
 # PRD Status & Roadmap - AntriMedis
 
-**Tanggal update:** 4 Juni 2026  
+**Tanggal update:** 26 Juni 2026
 **Dokumen acuan:** `docs/prd.md`  
 **Dokumen business flow antrean:** `docs/queue_business_flow.md`  
 **Status project:** UAS-ready beta / production-like MVP  
@@ -45,6 +45,8 @@ Pasien login
 | Antrean | Pelayanan hari-H, bukan booking future |
 | Notifikasi MVP | Local notification dipicu realtime saat app aktif/background ringan |
 | Notifikasi production penuh | FCM + Edge Function, future scope |
+| Release identity Android | `com.ti24a6.antrimedis` |
+| Release build version terakhir | `1.0.1+2` |
 | Scope klinik | Satu klinik/cabang utama untuk UAS |
 
 ---
@@ -59,7 +61,7 @@ Pasien login
 | UX profesional | 86% | Sudah proper untuk demo dan portfolio. Masih bisa dipoles setelah QA visual final. |
 | Demo UAS readiness | 90% | Layak demo setelah checklist E2E dijalankan ulang dengan data fresh. |
 | Production readiness belajar | 76% | Fondasi production sudah terasa, tetapi belum full production karena FCM, deployment, monitoring, automated test, dan package identity final belum selesai. |
-| Scope expansion readiness | 70% | Sudah mulai siap, tetapi sebaiknya scope baru dibuka setelah QA dan release identity aman. |
+| Scope expansion readiness | 72% | Sudah mulai siap, dan release identity Android sudah terkunci; fokus berikutnya tinggal QA, monitoring, dan otomasi yang paling ringan. |
 
 Kesimpulan: AntriMedis berada di level **production-like MVP**. Untuk ukuran UAS, capaiannya sudah kuat. Untuk disebut production-grade penuh, masih perlu disiplin release, monitoring, automated tests, push notification backend, dan audit security final.
 
@@ -190,7 +192,6 @@ Dokter dan poli yang belum pernah dipakai bisa dihapus. Dokter dan poli yang sud
 | Gap | Dampak | Rekomendasi |
 | --- | --- | --- |
 | E2E QA belum dicatat sebagai checklist final | Flow bisa tampak benar tapi gagal pada urutan tertentu | Jalankan checklist admin-mobile dari awal sampai selesai sebelum demo. |
-| Package id final dosen mungkin berbeda | Perlu penyesuaian sebelum upload/internal test | Saat ini memakai `com.ti24a6.antrimedis`; ganti bila dosen memberi format khusus. |
 | RLS final audit belum terdokumentasi detail | Risiko akses terlalu luas/sempit | Audit policy sebelum final deploy/demo besar. |
 | Avatar cleanup belum final | Storage bisa menumpuk file lama | Hapus avatar lama saat upload/remove atau gunakan path deterministic. |
 
@@ -266,14 +267,13 @@ Prioritas paling dekat adalah membuktikan flow dari database real:
 
 ### Phase B - Release Identity
 
-Menunggu package name dari dosen:
+Release identity Android sudah dikunci:
 
-1. Konfirmasi apakah `com.ti24a6.antrimedis` sudah boleh dipakai.
-2. Ganti Android `applicationId`/namespace jika dosen memberi format khusus.
-3. Rapikan app icon jika ingin asset final khusus.
-4. Rapikan splash screen jika ingin asset final khusus.
-5. Build APK debug/release sesuai kebutuhan.
-6. Jalankan final QA checklist.
+1. `com.ti24a6.antrimedis` sudah dipakai sebagai identity Android final.
+2. Rapikan app icon jika ingin asset final khusus.
+3. Rapikan splash screen jika ingin asset final khusus.
+4. Build APK/AAB release sesuai kebutuhan.
+5. Jalankan final QA checklist.
 
 ### Phase C - Test Coverage Minimal
 
