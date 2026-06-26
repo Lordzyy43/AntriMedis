@@ -1,6 +1,6 @@
 # Current Project Snapshot - AntriMedis
 
-**Tanggal:** 4 Juni 2026  
+**Tanggal:** 26 Juni 2026
 **Scope:** Satu klinik, satu cabang utama  
 **Status:** UAS-ready beta / production-like MVP
 
@@ -185,7 +185,7 @@ flutter analyze
 flutter test
 ```
 
-Kondisi terakhir: pass pada 4 Juni 2026.
+Kondisi terakhir: pass pada 26 Juni 2026.
 
 Admin panel:
 
@@ -198,6 +198,12 @@ Kondisi terakhir: pass pada 4 Juni 2026.
 
 Catatan admin build: ada warning chunk Vite lebih dari 500 kB. Ini bukan error, hanya catatan optimasi bundle.
 
+Release/hygiene:
+
+- Android package id final saat ini: `com.ti24a6.antrimedis`.
+- Release build version terakhir: `1.0.1+2`.
+- Supabase heartbeat Edge Function sudah deploy dan workflow GitHub Actions `Supabase Heartbeat` sudah aktif di branch default `main`.
+
 ---
 
 ## 7. Yang Belum Perlu Dikerjakan Sekarang
@@ -206,7 +212,6 @@ Catatan admin build: ada warning chunk Vite lebih dari 500 kB. Ini bukan error, 
 - Role dokter penuh.
 - Owner analytics.
 - FCM push notification production.
-- Internal testing/upload release jika package id final dari dosen berbeda dari `com.ti24a6.antrimedis`.
 - Fitur apotek, obat, pembayaran, BPJS, atau rekam medis.
 
 ---
@@ -216,8 +221,8 @@ Catatan admin build: ada warning chunk Vite lebih dari 500 kB. Ini bukan error, 
 Urutan yang paling aman:
 
 1. Simpan dokumentasi ini sebagai baseline kondisi project.
-2. Saat siap lanjut, jalankan QA E2E penuh dari admin dan mobile.
-3. Jika dosen meminta format package khusus, sesuaikan package id dari `com.ti24a6.antrimedis`, lalu build release.
+2. Upload AAB `1.0.1+2` ke closed testing.
+3. Saat siap lanjut, jalankan QA E2E penuh dari admin dan mobile.
 4. Tambahkan automated test minimal setelah flow final tidak sering berubah.
 5. Baru pertimbangkan scope baru seperti FCM, report, atau role dokter.
 

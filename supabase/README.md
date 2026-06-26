@@ -230,15 +230,18 @@ supabase/functions/heartbeat/index.ts
 
 It returns a simple JSON `ok` response.
 It also pings the database with the project service role key, so the request is not just a no-op.
+The function is already deployed, and the GitHub Actions workflow is on the repository default branch `main`.
 
 Recommended setup for the free plan:
 
 1. Deploy the function.
-2. Let GitHub Actions call it daily from:
+2. Keep the workflow file on the default branch:
 
 ```txt
 .github/workflows/supabase-heartbeat.yml
 ```
+
+3. Let GitHub Actions call it daily at `00:15 UTC`.
 
 The schedule runs once a day at `00:15 UTC`, which is enough to keep the project regularly active without being noisy.
 

@@ -4,13 +4,14 @@ Mobile app pasien untuk sistem antrean klinik AntriMedis. Aplikasi ini berfokus 
 
 ## Status
 
-Status per 4 Juni 2026:
+Status per 26 Juni 2026:
 
 - Scope aktif: satu klinik/cabang utama.
 - Role mobile: pasien.
 - Backend: Supabase Auth, PostgreSQL, RLS, RPC, Realtime, dan Storage avatar.
 - Flow utama sudah berjalan end-to-end dengan web admin.
 - App identity sudah memakai nama AntriMedis dan package id Android `com.ti24a6.antrimedis`.
+- Release build sudah dinaikkan ke `1.0.1+2`.
 
 Dokumen status lengkap ada di [docs/prd_status_roadmap.md](docs/prd_status_roadmap.md).
 
@@ -101,6 +102,7 @@ Terakhir dicek: keduanya pass.
 - Pasien hanya boleh memiliki satu antrean aktif per hari pada cabang utama.
 - Realtime pada app berarti UI berubah ketika admin memanggil/melayani/menyelesaikan antrean selama app aktif atau masih bisa menerima event.
 - Notifikasi production penuh saat app mati total membutuhkan FCM dan Edge Function. Ini masih future scope.
+- Heartbeat keep-alive Supabase sudah dipasang lewat Edge Function `heartbeat` dan GitHub Actions `Supabase Heartbeat` di branch default `main`.
 - Untuk reset data operasional tanpa menghapus dokter/poli/master data, gunakan `supabase/patches/20260604_reset_operational_data_keep_master.sql`.
 
 ## Dokumen Terkait
