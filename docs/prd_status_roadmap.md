@@ -190,7 +190,7 @@ Dokter dan poli yang belum pernah dipakai bisa dihapus. Dokter dan poli yang sud
 | Gap | Dampak | Rekomendasi |
 | --- | --- | --- |
 | E2E QA belum dicatat sebagai checklist final | Flow bisa tampak benar tapi gagal pada urutan tertentu | Jalankan checklist admin-mobile dari awal sampai selesai sebelum demo. |
-| Package id final dosen mungkin berbeda | Perlu penyesuaian sebelum upload/internal test | Saat ini memakai `com.antrimedis.app`; ganti bila dosen memberi format khusus. |
+| Package id final dosen mungkin berbeda | Perlu penyesuaian sebelum upload/internal test | Saat ini memakai `com.ti24a6.antrimedis`; ganti bila dosen memberi format khusus. |
 | RLS final audit belum terdokumentasi detail | Risiko akses terlalu luas/sempit | Audit policy sebelum final deploy/demo besar. |
 | Avatar cleanup belum final | Storage bisa menumpuk file lama | Hapus avatar lama saat upload/remove atau gunakan path deterministic. |
 
@@ -268,7 +268,7 @@ Prioritas paling dekat adalah membuktikan flow dari database real:
 
 Menunggu package name dari dosen:
 
-1. Konfirmasi apakah `com.antrimedis.app` sudah boleh dipakai.
+1. Konfirmasi apakah `com.ti24a6.antrimedis` sudah boleh dipakai.
 2. Ganti Android `applicationId`/namespace jika dosen memberi format khusus.
 3. Rapikan app icon jika ingin asset final khusus.
 4. Rapikan splash screen jika ingin asset final khusus.

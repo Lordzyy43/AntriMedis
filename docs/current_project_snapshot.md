@@ -206,7 +206,7 @@ Catatan admin build: ada warning chunk Vite lebih dari 500 kB. Ini bukan error, 
 - Role dokter penuh.
 - Owner analytics.
 - FCM push notification production.
-- Internal testing/upload release jika package id final dari dosen berbeda dari `com.antrimedis.app`.
+- Internal testing/upload release jika package id final dari dosen berbeda dari `com.ti24a6.antrimedis`.
 - Fitur apotek, obat, pembayaran, BPJS, atau rekam medis.
 
 ---
@@ -217,7 +217,7 @@ Urutan yang paling aman:
 
 1. Simpan dokumentasi ini sebagai baseline kondisi project.
 2. Saat siap lanjut, jalankan QA E2E penuh dari admin dan mobile.
-3. Jika dosen meminta format package khusus, sesuaikan package id dari `com.antrimedis.app`, lalu build release.
+3. Jika dosen meminta format package khusus, sesuaikan package id dari `com.ti24a6.antrimedis`, lalu build release.
 4. Tambahkan automated test minimal setelah flow final tidak sering berubah.
 5. Baru pertimbangkan scope baru seperti FCM, report, atau role dokter.
 

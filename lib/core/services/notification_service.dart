@@ -27,11 +27,6 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.createNotificationChannel(_queueUpdatesChannel);
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
     final launchDetails = await _plugin.getNotificationAppLaunchDetails();
     await NotificationTapRouter.instance.handleLaunchDetails(launchDetails);
   }
