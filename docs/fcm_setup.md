@@ -4,7 +4,7 @@ Status implementasi:
 
 - Firebase project: `antrimedis-4c0a5`
 - Firebase project number: `22480247523`
-- Android package name: `com.antrimedis.app`
+- Android package name: `com.ti24a6.antrimedis`
 - iOS bundle id: `com.antrimedis.app`
 - Android config: `android/app/google-services.json`
 - Flutter config: `lib/firebase_options.dart`
@@ -94,6 +94,13 @@ Function ini memakai `verify_jwt = false`, tetapi akses tetap dijaga di kode den
 8. Background/terminate app.
 9. Panggil antrean dari admin.
 10. Pastikan push FCM muncul dan inbox Supabase tetap lengkap.
+
+Catatan publish Android:
+
+- Pastikan `android/app/src/main/AndroidManifest.xml` tetap punya permission `INTERNET`.
+- Signing release sekarang memakai `android/key.properties` dan `android/app/upload-keystore.jks`.
+- Jangan commit file keystore atau `key.properties` ke repo.
+- Pastikan `google-services.json` yang dipakai memang berasal dari app Firebase dengan package `com.ti24a6.antrimedis`.
 
 ## 6. Catatan iOS
 
