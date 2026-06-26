@@ -219,3 +219,31 @@ For queue business rules, status lifecycle, realtime expectations, edge cases, a
 ```txt
 ../docs/queue_business_flow.md
 ```
+
+## Heartbeat Function
+
+If you want a very small keep-alive endpoint, use the `heartbeat` Edge Function:
+
+```txt
+supabase/functions/heartbeat/index.ts
+```
+
+It returns a simple JSON `ok` response.
+It also pings the database with the project service role key, so the request is not just a no-op.
+
+Recommended setup for the free plan:
+
+1. Deploy the function.
+2. Let GitHub Actions call it daily from:
+
+```txt
+.github/workflows/supabase-heartbeat.yml
+```
+
+The schedule runs once a day at `00:15 UTC`, which is enough to keep the project regularly active without being noisy.
+
+Deployment command:
+
+```bash
+supabase functions deploy heartbeat
+```

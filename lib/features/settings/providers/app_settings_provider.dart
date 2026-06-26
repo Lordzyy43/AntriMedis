@@ -2,32 +2,34 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppSettingsProvider extends ChangeNotifier {
+  AppSettingsProvider({
+    SecurityPinStore? securityPinStore,
+  }) : _securityPinStore = securityPinStore ?? const SecureStorageSecurityPinStore();
+
   static const _onboardingSeenKey = 'onboarding_seen';
   static const _themeModeKey = 'theme_mode';
-  static const _securityEnabledKey = 'security_enabled';
-  static const _securityHashKey = 'security_pin_hash';
 
+  final SecurityPinStore _securityPinStore;
   bool _isLoading = true;
   bool _hasSeenOnboarding = false;
   ThemeMode _themeMode = ThemeMode.light;
-  bool _securityEnabled = false;
   String? _pinHash;
 
   bool get isLoading => _isLoading;
   bool get hasSeenOnboarding => _hasSeenOnboarding;
   ThemeMode get themeMode => _themeMode;
-  bool get securityEnabled => _securityEnabled && _pinHash != null;
+  bool get securityEnabled => _pinHash != null;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     _hasSeenOnboarding = prefs.getBool(_onboardingSeenKey) ?? false;
     _themeMode = _themeModeFromString(prefs.getString(_themeModeKey));
-    _securityEnabled = prefs.getBool(_securityEnabledKey) ?? false;
-    _pinHash = prefs.getString(_securityHashKey);
+    _pinHash = await _securityPinStore.readPinHash();
     _isLoading = false;
     notifyListeners();
   }
@@ -47,20 +49,15 @@ class AppSettingsProvider extends ChangeNotifier {
   }
 
   Future<void> setSecurityPin(String pin) async {
-    final prefs = await SharedPreferences.getInstance();
-    _pinHash = _hash(pin);
-    _securityEnabled = true;
-    await prefs.setString(_securityHashKey, _pinHash!);
-    await prefs.setBool(_securityEnabledKey, true);
+    final hash = _hash(pin);
+    await _securityPinStore.writePinHash(hash);
+    _pinHash = hash;
     notifyListeners();
   }
 
   Future<void> clearSecurityPin() async {
-    final prefs = await SharedPreferences.getInstance();
+    await _securityPinStore.clearPinHash();
     _pinHash = null;
-    _securityEnabled = false;
-    await prefs.remove(_securityHashKey);
-    await prefs.setBool(_securityEnabledKey, false);
     notifyListeners();
   }
 
@@ -78,5 +75,38 @@ class AppSettingsProvider extends ChangeNotifier {
       'dark' => ThemeMode.dark,
       _ => ThemeMode.light,
     };
+  }
+}
+
+abstract class SecurityPinStore {
+  const SecurityPinStore();
+
+  Future<String?> readPinHash();
+  Future<void> writePinHash(String hash);
+  Future<void> clearPinHash();
+}
+
+class SecureStorageSecurityPinStore implements SecurityPinStore {
+  const SecureStorageSecurityPinStore({
+    FlutterSecureStorage? storage,
+  }) : _storage = storage ?? const FlutterSecureStorage();
+
+  final FlutterSecureStorage _storage;
+
+  static const _key = 'security_pin_hash';
+
+  @override
+  Future<String?> readPinHash() {
+    return _storage.read(key: _key);
+  }
+
+  @override
+  Future<void> writePinHash(String hash) {
+    return _storage.write(key: _key, value: hash);
+  }
+
+  @override
+  Future<void> clearPinHash() {
+    return _storage.delete(key: _key);
   }
 }

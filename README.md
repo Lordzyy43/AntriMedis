@@ -10,7 +10,7 @@ Status per 4 Juni 2026:
 - Role mobile: pasien.
 - Backend: Supabase Auth, PostgreSQL, RLS, RPC, Realtime, dan Storage avatar.
 - Flow utama sudah berjalan end-to-end dengan web admin.
-- App identity sudah memakai nama AntriMedis dan package id sementara `com.antrimedis.app`.
+- App identity sudah memakai nama AntriMedis dan package id Android `com.ti24a6.antrimedis`.
 
 Dokumen status lengkap ada di [docs/prd_status_roadmap.md](docs/prd_status_roadmap.md).
 

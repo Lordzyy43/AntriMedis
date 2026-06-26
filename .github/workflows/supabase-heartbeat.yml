@@ -1,0 +1,17 @@
+name: Supabase Heartbeat
+
+on:
+  schedule:
+    - cron: "15 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call heartbeat function
+        run: |
+          curl --fail-with-body --silent --show-error \
+            -X POST "https://vicwdxxjaoekppembbvt.supabase.co/functions/v1/heartbeat" \
+            -H "Content-Type: application/json" \
+            -d '{"source":"github-actions"}'

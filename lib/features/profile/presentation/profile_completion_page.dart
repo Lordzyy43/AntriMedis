@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/app_colors.dart';
@@ -1122,17 +1123,47 @@ class _AccountActionPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          Center(
-            child: Text(
-              'Versi 1.0.0+1',
-              style: TextStyle(
-                color: AppColors.textMutedOf(context),
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
+          const _AppVersionLabel(),
         ],
+      ),
+    );
+  }
+}
+
+class _AppVersionLabel extends StatefulWidget {
+  const _AppVersionLabel();
+
+  @override
+  State<_AppVersionLabel> createState() => _AppVersionLabelState();
+}
+
+class _AppVersionLabelState extends State<_AppVersionLabel> {
+  String _label = 'Versi aplikasi';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() {
+      _label = 'Versi ${info.version}+${info.buildNumber}';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        _label,
+        style: TextStyle(
+          color: AppColors.textMutedOf(context),
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
